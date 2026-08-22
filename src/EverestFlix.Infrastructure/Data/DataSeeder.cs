@@ -1,5 +1,6 @@
 using EverestFlix.Domain.Constants;
 using EverestFlix.Domain.Entities;
+using EverestFlix.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -10,10 +11,6 @@ namespace EverestFlix.Infrastructure.Data;
 
 public static class DataSeeder
 {
-    /// <summary>
-    /// Applies pending migrations, ensures roles exist, and seeds a development Creator account.
-    /// Safe to call on every application startup — all operations are idempotent.
-    /// </summary>
     public static async Task SeedAsync(IServiceProvider serviceProvider)
     {
         using var scope = serviceProvider.CreateScope();
@@ -43,13 +40,14 @@ public static class DataSeeder
 
         if (string.IsNullOrWhiteSpace(creatorEmail) || string.IsNullOrWhiteSpace(creatorPassword))
         {
-            logger.LogWarning("Seed:CreatorEmail or Seed:CreatorPassword missing from config. Skipping Creator seed.");
+            logger.LogWarning("Seed:CreatorEmail or Seed:CreatorPassword missing. Skipping seed.");
             return;
         }
 
-        if (await userManager.FindByEmailAsync(creatorEmail) is null)
+        var creator = await userManager.FindByEmailAsync(creatorEmail);
+        if (creator is null)
         {
-            var creator = new ApplicationUser
+            creator = new ApplicationUser
             {
                 UserName       = creatorEmail,
                 Email          = creatorEmail,
@@ -59,16 +57,49 @@ public static class DataSeeder
             };
 
             var result = await userManager.CreateAsync(creator, creatorPassword);
-            if (result.Succeeded)
-            {
-                await userManager.AddToRoleAsync(creator, Roles.Creator);
-                logger.LogInformation("Seeded Creator account: {Email}", creatorEmail);
-            }
-            else
+            if (!result.Succeeded)
             {
                 logger.LogError("Failed to seed Creator: {Errors}",
                     string.Join("; ", result.Errors.Select(e => e.Description)));
+                return;
             }
+
+            await userManager.AddToRoleAsync(creator, Roles.Creator);
+            logger.LogInformation("Seeded Creator account: {Email}", creatorEmail);
+        }
+
+        if (!await db.Videos.AnyAsync())
+        {
+            db.Videos.AddRange(
+                new Video
+                {
+                    Title       = "Welcome to EverestFlix",
+                    Description = "A brief tour of the EverestFlix platform.",
+                    Publisher   = "EverestFlix",
+                    Producer    = "EverestFlix Studio",
+                    Genre       = "Introduction",
+                    AgeRating   = AgeRating.U,
+                    VideoUrl    = "/uploads/videos/sample-welcome.mp4",
+                    CreatorId   = creator.Id,
+                    CreatedAt   = DateTime.UtcNow.AddMinutes(-30),
+                    IsPublished = true
+                },
+                new Video
+                {
+                    Title       = "Cloud Fundamentals in 60 Seconds",
+                    Description = "A whistle-stop tour of cloud-native architecture.",
+                    Publisher   = "EverestFlix Learning",
+                    Producer    = "Development Creator",
+                    Genre       = "Education",
+                    AgeRating   = AgeRating.PG,
+                    VideoUrl    = "/uploads/videos/sample-cloud.mp4",
+                    CreatorId   = creator.Id,
+                    CreatedAt   = DateTime.UtcNow.AddMinutes(-15),
+                    IsPublished = true
+                });
+
+            await db.SaveChangesAsync();
+            logger.LogInformation("Seeded 2 sample videos.");
         }
     }
 }

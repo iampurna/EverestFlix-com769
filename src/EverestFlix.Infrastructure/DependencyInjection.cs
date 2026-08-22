@@ -2,6 +2,8 @@ using EverestFlix.Application.Interfaces;
 using EverestFlix.Domain.Entities;
 using EverestFlix.Infrastructure.Data;
 using EverestFlix.Infrastructure.Identity;
+using EverestFlix.Infrastructure.Storage;
+using EverestFlix.Infrastructure.Videos;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -36,8 +38,10 @@ public static class DependencyInjection
             .AddRoles<IdentityRole>()
             .AddEntityFrameworkStores<EverestFlixDbContext>();
 
-        services.AddScoped<IJwtTokenService, JwtTokenService>();
-        services.AddScoped<IAuthService,     AuthService>();
+        services.AddScoped<IJwtTokenService,     JwtTokenService>();
+        services.AddScoped<IAuthService,         AuthService>();
+        services.AddScoped<IVideoStorageService, LocalVideoStorageService>();
+        services.AddScoped<IVideoService,        VideoService>();
 
         return services;
     }

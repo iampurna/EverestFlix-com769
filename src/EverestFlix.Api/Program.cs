@@ -45,7 +45,6 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
-// CORS — restrict to configured dev origins
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
 builder.Services.AddCors(options =>
 {
@@ -57,18 +56,17 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Swagger with JWT bearer button
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "EverestFlix API", Version = "v1" });
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "Paste your JWT below. No 'Bearer ' prefix needed.",
-        Name        = "Authorization",
-        In          = ParameterLocation.Header,
-        Type        = SecuritySchemeType.Http,
-        Scheme      = "bearer",
+        Description  = "Paste your JWT below. No 'Bearer ' prefix needed.",
+        Name         = "Authorization",
+        In           = ParameterLocation.Header,
+        Type         = SecuritySchemeType.Http,
+        Scheme       = "bearer",
         BearerFormat = "JWT"
     });
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -96,10 +94,11 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-    // Only redirect to HTTPS outside dev — avoids the noisy warning in HTTP-only local runs.
-    // Azure App Service handles HTTPS termination in production.
     app.UseHttpsRedirection();
 }
+
+// Serve /uploads/videos/*.mp4 as static files
+app.UseStaticFiles();
 
 app.UseCors();
 app.UseAuthentication();

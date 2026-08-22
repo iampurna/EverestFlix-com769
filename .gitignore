@@ -487,3 +487,9 @@ $RECYCLE.BIN/
 *.db
 *.db-shm
 *.db-wal
+
+# Video uploads (local dev only)
+src/EverestFlix.Api/wwwroot/uploads/
+
+# Video uploads (local dev only)
+src/EverestFlix.Api/wwwroot/uploads/
