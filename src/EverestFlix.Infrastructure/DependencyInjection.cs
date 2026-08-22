@@ -1,5 +1,7 @@
+using EverestFlix.Application.Interfaces;
 using EverestFlix.Domain.Entities;
 using EverestFlix.Infrastructure.Data;
+using EverestFlix.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -23,19 +25,19 @@ public static class DependencyInjection
         services
             .AddIdentityCore<ApplicationUser>(options =>
             {
-                // Password policy — reasonable defaults for coursework
-                options.Password.RequireDigit = true;
-                options.Password.RequiredLength = 8;
-                options.Password.RequireLowercase = true;
-                options.Password.RequireUppercase = true;
+                options.Password.RequireDigit           = true;
+                options.Password.RequiredLength         = 8;
+                options.Password.RequireLowercase       = true;
+                options.Password.RequireUppercase       = true;
                 options.Password.RequireNonAlphanumeric = false;
 
                 options.User.RequireUniqueEmail = true;
             })
             .AddRoles<IdentityRole>()
             .AddEntityFrameworkStores<EverestFlixDbContext>();
-            //.AddSignInManager()
-            //.AddDefaultTokenProviders();
+
+        services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddScoped<IAuthService,     AuthService>();
 
         return services;
     }
