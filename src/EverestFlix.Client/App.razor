@@ -1,11 +1,36 @@
 ﻿<CascadingAuthenticationState>
     <Router AppAssembly="@typeof(App).Assembly">
+
         <Found Context="routeData">
-            <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
+
+            <AuthorizeRouteView RouteData="@routeData"
+                                DefaultLayout="@typeof(Layout.MainLayout)">
+
+                <Authorizing>
+                    <div class="ef-empty">
+                        <h2>Checking access...</h2>
+                    </div>
+                </Authorizing>
+
+                <NotAuthorized>
+                    <div class="ef-empty">
+                        <h2>Access denied</h2>
+                        <p>You do not have permission to view this page.</p>
+                        <p>
+                            <a href="/login">Log in with another account</a>
+                        </p>
+                    </div>
+                </NotAuthorized>
+
+            </AuthorizeRouteView>
+
             <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+
         </Found>
+
         <NotFound>
             <PageTitle>Not found · EverestFlix</PageTitle>
+
             <LayoutView Layout="@typeof(Layout.MainLayout)">
                 <div class="ef-empty">
                     <h1>Not found</h1>
@@ -13,5 +38,6 @@
                 </div>
             </LayoutView>
         </NotFound>
+
     </Router>
 </CascadingAuthenticationState>
