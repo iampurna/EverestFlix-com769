@@ -33,7 +33,7 @@ public class CommentsController : ControllerBase
         if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
         var result = await _commentService.AddAsync(videoId, request, userId, ct);
-        if (result.Succeeded) return CreatedAtAction(nameof(GetForVideo), new { videoId }, result.Value);
+        if (result.Succeeded) return Created($"/api/comments/{result.Value!.Id}", result.Value);
 
         return result.ErrorCode switch
         {

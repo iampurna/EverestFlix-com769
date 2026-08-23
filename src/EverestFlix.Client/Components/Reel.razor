@@ -126,9 +126,9 @@
     private Task OpenRating()   => OnOpenRating.InvokeAsync(Video.Id);
 
     private async Task Share()
-    {
-        var url = $"{JS.GetType().Assembly.GetName().Name}";  // placeholder for readability
-        var shareUrl = $"{ApiBase.Replace("5187","5100").TrimEnd('/')}/video/{Video.Id}";
-        await JS.InvokeVoidAsync("navigator.clipboard.writeText", shareUrl);
-    }
+{
+    var origin = await JS.InvokeAsync<string>("eval", "window.location.origin");
+    var shareUrl = $"{origin}/video/{Video.Id}";
+    await JS.InvokeVoidAsync("navigator.clipboard.writeText", shareUrl);
+}
 }

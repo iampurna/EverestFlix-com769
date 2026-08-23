@@ -127,6 +127,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await base.OnInitializedAsync();
         _apiBase = Config["ApiBaseUrl"] ?? string.Empty;
     }
 
