@@ -34,41 +34,25 @@ public static class DataSeeder
             }
         }
 
-        var creatorEmail    = configuration["Seed:CreatorEmail"];
-        var creatorPassword = configuration["Seed:CreatorPassword"];
-        var creatorName     = configuration["Seed:CreatorFullName"] ?? "Development Creator";
+        var creator = await SeedUserAsync(
+            userManager, configuration,
+            emailKey: "Seed:CreatorEmail",
+            passwordKey: "Seed:CreatorPassword",
+            fullNameKey: "Seed:CreatorFullName",
+            defaultFullName: "Development Creator",
+            role: Roles.Creator,
+            logger: logger);
 
-        if (string.IsNullOrWhiteSpace(creatorEmail) || string.IsNullOrWhiteSpace(creatorPassword))
-        {
-            logger.LogWarning("Seed:CreatorEmail or Seed:CreatorPassword missing. Skipping seed.");
-            return;
-        }
+        await SeedUserAsync(
+            userManager, configuration,
+            emailKey: "Seed:AdminEmail",
+            passwordKey: "Seed:AdminPassword",
+            fullNameKey: "Seed:AdminFullName",
+            defaultFullName: "Development Admin",
+            role: Roles.Admin,
+            logger: logger);
 
-        var creator = await userManager.FindByEmailAsync(creatorEmail);
-        if (creator is null)
-        {
-            creator = new ApplicationUser
-            {
-                UserName       = creatorEmail,
-                Email          = creatorEmail,
-                EmailConfirmed = true,
-                FullName       = creatorName,
-                CreatedAt      = DateTime.UtcNow
-            };
-
-            var result = await userManager.CreateAsync(creator, creatorPassword);
-            if (!result.Succeeded)
-            {
-                logger.LogError("Failed to seed Creator: {Errors}",
-                    string.Join("; ", result.Errors.Select(e => e.Description)));
-                return;
-            }
-
-            await userManager.AddToRoleAsync(creator, Roles.Creator);
-            logger.LogInformation("Seeded Creator account: {Email}", creatorEmail);
-        }
-
-        if (!await db.Videos.AnyAsync())
+        if (creator is not null && !await db.Videos.AnyAsync())
         {
             db.Videos.AddRange(
                 new Video
@@ -101,5 +85,47 @@ public static class DataSeeder
             await db.SaveChangesAsync();
             logger.LogInformation("Seeded 2 sample videos.");
         }
+    }
+
+    private static async Task<ApplicationUser?> SeedUserAsync(
+        UserManager<ApplicationUser> userManager,
+        IConfiguration configuration,
+        string emailKey, string passwordKey, string fullNameKey,
+        string defaultFullName, string role,
+        ILogger logger)
+    {
+        var email    = configuration[emailKey];
+        var password = configuration[passwordKey];
+        var name     = configuration[fullNameKey] ?? defaultFullName;
+
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        {
+            logger.LogWarning("{EmailKey} or {PasswordKey} missing; skipping seed for role {Role}.", emailKey, passwordKey, role);
+            return null;
+        }
+
+        var existing = await userManager.FindByEmailAsync(email);
+        if (existing is not null) return existing;
+
+        var user = new ApplicationUser
+        {
+            UserName       = email,
+            Email          = email,
+            EmailConfirmed = true,
+            FullName       = name,
+            CreatedAt      = DateTime.UtcNow
+        };
+
+        var result = await userManager.CreateAsync(user, password);
+        if (!result.Succeeded)
+        {
+            logger.LogError("Failed to seed {Role}: {Errors}", role,
+                string.Join("; ", result.Errors.Select(e => e.Description)));
+            return null;
+        }
+
+        await userManager.AddToRoleAsync(user, role);
+        logger.LogInformation("Seeded {Role} account: {Email}", role, email);
+        return user;
     }
 }

@@ -23,26 +23,21 @@ else
         @foreach (var v in _videos)
         {
             <div class="reel-slot">
-                <Reel Video="v" ApiBase="@_apiBase" />
+                <Reel Video="v" ApiBase="@_apiBase"
+                      OnOpenComments="OpenComments"
+                      OnOpenRating="OpenRating" />
             </div>
         }
     </div>
 }
 
+<CommentsPanel @ref="_commentsPanel" VideoId="0" />
+<RatingPicker  @ref="_ratingPicker"  VideoId="0" />
+
 <style>
-    .reels-container {
-        height: 100%;
-        width: 100%;
-        overflow-y: scroll;
-        scroll-snap-type: y mandatory;
-        scrollbar-width: none;
-    }
+    .reels-container { height: 100%; width: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; }
     .reels-container::-webkit-scrollbar { display: none; }
-    .reel-slot {
-        height: 100%;
-        width: 100%;
-        scroll-snap-align: start;
-    }
+    .reel-slot { height: 100%; width: 100%; scroll-snap-align: start; }
 </style>
 
 @code {
@@ -50,6 +45,9 @@ else
     private bool                        _loading = true;
     private DotNetObjectReference<Home>? _selfRef;
     private string                      _apiBase = string.Empty;
+
+    private CommentsPanel? _commentsPanel;
+    private RatingPicker?  _ratingPicker;
 
     protected override async Task OnInitializedAsync()
     {
@@ -62,22 +60,23 @@ else
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender || _loading || !_videos.Any()) return;
-
         _selfRef = DotNetObjectReference.Create(this);
         await JS.InvokeVoidAsync("EverestFlixReels.initialise",
             _selfRef, "#reels-container", ".reel-slot");
     }
 
     [JSInvokable]
-    public Task OnReelChanged(int videoId)
-    {
-        return Task.CompletedTask;
-    }
+    public Task OnReelChanged(int videoId) => Task.CompletedTask;
+
+    private Task OpenComments(int videoId) =>
+        _commentsPanel is null ? Task.CompletedTask : _commentsPanel.OpenAsync(videoId);
+
+    private Task OpenRating(int videoId) =>
+        _ratingPicker is null ? Task.CompletedTask : _ratingPicker.OpenAsync(videoId);
 
     public async ValueTask DisposeAsync()
     {
-        try { await JS.InvokeVoidAsync("EverestFlixReels.dispose"); }
-        catch { }
+        try { await JS.InvokeVoidAsync("EverestFlixReels.dispose"); } catch { }
         _selfRef?.Dispose();
     }
 }

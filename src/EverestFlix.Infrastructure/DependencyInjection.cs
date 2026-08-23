@@ -1,7 +1,10 @@
 using EverestFlix.Application.Interfaces;
 using EverestFlix.Domain.Entities;
+using EverestFlix.Infrastructure.Admin;
+using EverestFlix.Infrastructure.Comments;
 using EverestFlix.Infrastructure.Data;
 using EverestFlix.Infrastructure.Identity;
+using EverestFlix.Infrastructure.Ratings;
 using EverestFlix.Infrastructure.Storage;
 using EverestFlix.Infrastructure.Videos;
 using Microsoft.AspNetCore.Identity;
@@ -42,6 +45,9 @@ public static class DependencyInjection
         services.AddScoped<IAuthService,         AuthService>();
         services.AddScoped<IVideoStorageService, LocalVideoStorageService>();
         services.AddScoped<IVideoService,        VideoService>();
+        services.AddScoped<ICommentService,      CommentService>();
+        services.AddScoped<IRatingService,       RatingService>();
+        services.AddScoped<IAdminService,        AdminService>();
 
         return services;
     }

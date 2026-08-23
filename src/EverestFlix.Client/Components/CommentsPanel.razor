@@ -1,0 +1,148 @@
+@inject EverestFlixApiClient Api
+
+<div class="comments-panel @(_open ? "open" : "")">
+    <div class="header">
+        <strong>@_total comment@(_total == 1 ? "" : "s")</strong>
+        <button class="ef-ghost" @onclick="Close">✕</button>
+    </div>
+
+    <div class="body">
+        @if (_loading)
+        {
+            <p class="muted">Loading…</p>
+        }
+        else if (_comments.Count == 0)
+        {
+            <p class="muted">Be the first to comment.</p>
+        }
+        else
+        {
+            @foreach (var c in _comments)
+            {
+                <div class="comment">
+                    <div class="head">
+                        <strong>@c.UserName</strong>
+                        <span class="time">@RelativeTime(c.CreatedAt)</span>
+                    </div>
+                    <p class="text">@c.Text</p>
+                </div>
+            }
+        }
+    </div>
+
+    <AuthorizeView>
+        <Authorized>
+            <form class="composer" @onsubmit="Submit" @onsubmit:preventDefault>
+                <input class="ef-input" @bind="_draft" placeholder="Add a comment..." maxlength="1000" />
+                <button type="submit" disabled="@(_busy || string.IsNullOrWhiteSpace(_draft))">Post</button>
+            </form>
+        </Authorized>
+        <NotAuthorized>
+            <div class="composer-guest"><a href="login">Log in</a> to comment.</div>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+<style>
+    .comments-panel {
+        position: fixed;
+        top: var(--topbar-h);
+        right: -420px;
+        bottom: 0;
+        width: 420px;
+        max-width: 100vw;
+        background: var(--ef-surface);
+        border-left: 1px solid var(--ef-border);
+        display: flex;
+        flex-direction: column;
+        transition: right 0.25s ease;
+        z-index: 30;
+        box-shadow: -8px 0 24px rgba(15, 23, 42, 0.06);
+    }
+    .comments-panel.open { right: 0; }
+    .comments-panel .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        border-bottom: 1px solid var(--ef-border);
+    }
+    .comments-panel .body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+    }
+    .comments-panel .muted { color: var(--ef-brown); text-align: center; margin: 2rem 0; }
+    .comment { margin-bottom: 1rem; }
+    .comment .head { display: flex; justify-content: space-between; margin-bottom: 0.25rem; font-size: 0.85rem; }
+    .comment .time { color: var(--ef-brown); font-size: 0.75rem; }
+    .comment .text { margin: 0; line-height: 1.4; }
+    .composer {
+        display: flex;
+        gap: 0.5rem;
+        padding: 1rem;
+        border-top: 1px solid var(--ef-border);
+    }
+    .composer .ef-input { flex: 1; padding: 0.5rem 0.75rem; }
+    .composer-guest { padding: 1rem; text-align: center; color: var(--ef-brown); border-top: 1px solid var(--ef-border); }
+</style>
+
+@code {
+    [Parameter] public int              VideoId  { get; set; }
+    [Parameter] public EventCallback<int> OnCountChanged { get; set; }
+
+    private List<CommentDto> _comments = new();
+    private bool             _loading;
+    private bool             _busy;
+    private bool             _open;
+    private int              _total;
+    private string           _draft = string.Empty;
+
+    public async Task OpenAsync(int videoId)
+    {
+        VideoId = videoId;
+        _open   = true;
+        await LoadAsync();
+    }
+
+    public void Close()
+    {
+        _open = false;
+        StateHasChanged();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        var page = await Api.GetCommentsAsync(VideoId);
+        _comments = page.Items;
+        _total    = (int)page.TotalItems;
+        _loading  = false;
+        await OnCountChanged.InvokeAsync(_total);
+    }
+
+    private async Task Submit()
+    {
+        if (string.IsNullOrWhiteSpace(_draft)) return;
+        _busy = true;
+        var (created, _) = await Api.AddCommentAsync(VideoId, _draft.Trim());
+        if (created is not null)
+        {
+            _comments.Insert(0, created);
+            _total++;
+            _draft = string.Empty;
+            await OnCountChanged.InvokeAsync(_total);
+        }
+        _busy = false;
+    }
+
+    private static string RelativeTime(DateTime utc)
+    {
+        var span = DateTime.UtcNow - utc;
+        if (span.TotalSeconds < 60)  return "just now";
+        if (span.TotalMinutes < 60)  return $"{(int)span.TotalMinutes}m";
+        if (span.TotalHours < 24)    return $"{(int)span.TotalHours}h";
+        if (span.TotalDays < 30)     return $"{(int)span.TotalDays}d";
+        return utc.ToLocalTime().ToString("d MMM");
+    }
+}

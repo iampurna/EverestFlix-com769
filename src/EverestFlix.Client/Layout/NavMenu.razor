@@ -5,6 +5,18 @@
     <NavLink class="nav-link" href="search">
         <span class="icon">🔍</span> <span class="label">Explore</span>
     </NavLink>
+
+    <AuthorizeView Roles="Creator,Admin">
+        <Authorized>
+            <NavLink class="nav-link" href="creator/dashboard">
+                <span class="icon">📊</span> <span class="label">Dashboard</span>
+            </NavLink>
+            <NavLink class="nav-link" href="creator/upload">
+                <span class="icon">⬆️</span> <span class="label">Upload</span>
+            </NavLink>
+        </Authorized>
+    </AuthorizeView>
+
     <AuthorizeView>
         <Authorized>
             <NavLink class="nav-link" href="me">

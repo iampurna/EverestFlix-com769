@@ -1,0 +1,65 @@
+@page "/me"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject EverestFlixApiClient          Api
+@inject JwtAuthenticationStateProvider AuthState
+@inject NavigationManager             Nav
+
+<PageTitle>My Profile · EverestFlix</PageTitle>
+
+<div class="me-page">
+    <div class="ef-card">
+        @if (_user is null)
+        {
+            <p>Loading…</p>
+        }
+        else
+        {
+            <h1>@_user.FullName</h1>
+            <p class="email">@_user.Email</p>
+            <div class="roles">
+                @foreach (var r in _user.Roles)
+                {
+                    <span class="role-chip @(r.ToLower())">@r</span>
+                }
+            </div>
+
+            <div class="actions">
+                @if (_user.Roles.Contains("Creator") || _user.Roles.Contains("Admin"))
+                {
+                    <a href="creator/dashboard">Creator Dashboard →</a>
+                }
+                <button class="ef-ghost" @onclick="LogOut">Log out</button>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .me-page { padding: 3rem 1rem; height: 100%; overflow-y: auto; display: flex; justify-content: center; align-items: flex-start; }
+    .me-page .ef-card { width: 100%; max-width: 500px; }
+    .email { color: var(--ef-brown); margin: 0 0 1rem; }
+    .roles { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .role-chip {
+        padding: 0.2rem 0.65rem; border-radius: 999px;
+        font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        background: var(--ef-border); color: var(--ef-brown);
+    }
+    .role-chip.creator { background: var(--ef-blue); color: white; }
+    .role-chip.admin { background: var(--ef-navy); color: white; }
+    .actions { display: flex; gap: 1rem; align-items: center; }
+</style>
+
+@code {
+    private UserInfo? _user;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = await Api.GetMeAsync();
+    }
+
+    private async Task LogOut()
+    {
+        await AuthState.LogOutAsync();
+        Nav.NavigateTo("/");
+    }
+}

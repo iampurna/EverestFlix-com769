@@ -1,4 +1,5 @@
-@* One reel: 9:16 phone-frame video centered on a light backdrop. TikTok/Reels style. *@
+@* One reel: 9:16 phone-frame video centered on a light backdrop. Wired to comments + ratings. *@
+@inject IJSRuntime JS
 
 <div class="reel" data-video-id="@Video.Id">
     <div class="reel-stage">
@@ -30,7 +31,11 @@
         </div>
 
         <div class="side-rail">
-            <ActionRail CommentCount="0" />
+            <ActionRail CommentCount="_commentCount"
+                        RatingAverage="_ratingAverage"
+                        OnCommentsClick="OpenComments"
+                        OnRateClick="OpenRating"
+                        OnShareClick="Share" />
         </div>
     </div>
 </div>
@@ -64,98 +69,39 @@
         box-shadow: 0 20px 60px rgba(15, 23, 42, 0.15);
         border: 1px solid var(--ef-border);
     }
-    .reel-video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
+    .reel-video { width: 100%; height: 100%; object-fit: cover; }
     .reel-fallback {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(180deg, #1e3a8a 0%, #2848a7 100%);
-        color: white;
+        position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(180deg, #1e3a8a 0%, #2848a7 100%); color: white;
     }
     .fallback-inner { text-align: center; padding: 1.5rem; max-width: 300px; }
     .fallback-badge {
-        display: inline-block;
-        background: rgba(255,255,255,0.2);
-        color: white;
-        padding: 0.3rem 0.75rem;
-        border-radius: 999px;
-        font-size: 0.75rem;
-        margin-bottom: 1rem;
+        display: inline-block; background: rgba(255,255,255,0.2); color: white;
+        padding: 0.3rem 0.75rem; border-radius: 999px; font-size: 0.75rem; margin-bottom: 1rem;
     }
     .fallback-inner code {
-        background: rgba(255,255,255,0.15);
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        display: inline-block;
-        margin: 0.5rem 0;
-        word-break: break-all;
+        background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px;
+        font-size: 0.75rem; display: inline-block; margin: 0.5rem 0; word-break: break-all;
     }
-    .fallback-inner .hint {
-        color: rgba(255,255,255,0.7);
-        font-size: 0.8rem;
-        margin-top: 1rem;
-    }
-
+    .fallback-inner .hint { color: rgba(255,255,255,0.7); font-size: 0.8rem; margin-top: 1rem; }
     .reel-meta {
-        position: absolute;
-        bottom: 1rem;
-        left: 1rem;
-        right: 1rem;
-        color: white;
-        z-index: 4;
-        text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+        position: absolute; bottom: 1rem; left: 1rem; right: 1rem; color: white;
+        z-index: 4; text-shadow: 0 1px 6px rgba(0,0,0,0.8);
     }
-    .reel-meta .creator {
-        font-weight: 700;
-        margin-bottom: 0.3rem;
-        opacity: 0.95;
-        font-size: 0.9rem;
-    }
-    .reel-meta .title {
-        font-size: 1rem;
-        font-weight: 600;
-        margin-bottom: 0.4rem;
-        line-height: 1.3;
-    }
+    .reel-meta .creator { font-weight: 700; margin-bottom: 0.3rem; opacity: 0.95; font-size: 0.9rem; }
+    .reel-meta .title { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; line-height: 1.3; }
     .reel-meta .tags { display: flex; gap: 0.35rem; flex-wrap: wrap; }
     .reel-meta .tag {
-        background: rgba(0,0,0,0.5);
-        padding: 0.15rem 0.5rem;
-        border-radius: 999px;
-        font-size: 0.7rem;
-        backdrop-filter: blur(6px);
+        background: rgba(0,0,0,0.5); padding: 0.15rem 0.5rem; border-radius: 999px;
+        font-size: 0.7rem; backdrop-filter: blur(6px);
     }
-
-    .side-rail {
-        position: relative;
-        width: 48px;
-        height: 100%;
-        max-height: 720px;
-    }
+    .side-rail { position: relative; width: 48px; height: 100%; max-height: 720px; }
 
     @@media (max-width: 640px) {
         .reel { padding: 0; }
-        .phone-frame {
-            border-radius: 0;
-            border: none;
-            height: 100%;
-            max-height: none;
-            width: 100%;
-            box-shadow: none;
-        }
+        .phone-frame { border-radius: 0; border: none; height: 100%; max-height: none; width: 100%; box-shadow: none; }
         .reel-stage { height: 100%; max-height: none; width: 100%; }
-        .side-rail {
-            position: absolute;
-            right: 0;
-            top: 0;
-        }
+        .side-rail { position: absolute; right: 0; top: 0; }
     }
 </style>
 
@@ -163,13 +109,26 @@
     [Parameter, EditorRequired]
     public EverestFlix.Client.Models.VideoSummary Video { get; set; } = default!;
 
-    [Parameter]
-    public string ApiBase { get; set; } = string.Empty;
+    [Parameter] public string                     ApiBase          { get; set; } = string.Empty;
+    [Parameter] public EventCallback<int>         OnOpenComments   { get; set; }
+    [Parameter] public EventCallback<int>         OnOpenRating     { get; set; }
 
-    private bool _hasError;
+    private bool   _hasError;
+    private int    _commentCount;
+    private double _ratingAverage;
 
     private string AbsoluteVideoUrl =>
         Video.VideoUrl.StartsWith("http") ? Video.VideoUrl : $"{ApiBase.TrimEnd('/')}{Video.VideoUrl}";
 
     private void OnVideoError() => _hasError = true;
+
+    private Task OpenComments() => OnOpenComments.InvokeAsync(Video.Id);
+    private Task OpenRating()   => OnOpenRating.InvokeAsync(Video.Id);
+
+    private async Task Share()
+    {
+        var url = $"{JS.GetType().Assembly.GetName().Name}";  // placeholder for readability
+        var shareUrl = $"{ApiBase.Replace("5187","5100").TrimEnd('/')}/video/{Video.Id}";
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", shareUrl);
+    }
 }

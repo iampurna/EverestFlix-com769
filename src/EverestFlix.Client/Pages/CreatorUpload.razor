@@ -1,0 +1,122 @@
+@page "/creator/upload"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Creator")]
+@inject EverestFlixApiClient Api
+@inject NavigationManager    Nav
+
+<PageTitle>Upload Video · EverestFlix</PageTitle>
+
+<div class="upload-page">
+    <div class="ef-card">
+        <h1>Upload Video</h1>
+        <p class="subtitle">Share your video with EverestFlix</p>
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="ef-error">@_error</div>
+        }
+
+        <form @onsubmit="Submit" @onsubmit:preventDefault>
+            <label class="ef-label">Title</label>
+            <input class="ef-input" @bind="_title" required maxlength="200" />
+
+            <label class="ef-label" style="margin-top: 1rem;">Description</label>
+            <textarea class="ef-input" @bind="_description" rows="3" maxlength="2000"></textarea>
+
+            <div class="row">
+                <div>
+                    <label class="ef-label">Publisher</label>
+                    <input class="ef-input" @bind="_publisher" required maxlength="150" />
+                </div>
+                <div>
+                    <label class="ef-label">Producer</label>
+                    <input class="ef-input" @bind="_producer" required maxlength="150" />
+                </div>
+            </div>
+
+            <div class="row">
+                <div>
+                    <label class="ef-label">Genre</label>
+                    <input class="ef-input" @bind="_genre" required maxlength="80" />
+                </div>
+                <div>
+                    <label class="ef-label">Age rating</label>
+                    <select class="ef-input" @bind="_ageRating">
+                        <option value="0">U (Universal)</option>
+                        <option value="1">PG</option>
+                        <option value="12">12</option>
+                        <option value="15">15</option>
+                        <option value="18">18</option>
+                    </select>
+                </div>
+            </div>
+
+            <label class="ef-label" style="margin-top: 1rem;">Video file (MP4, WebM, MOV — max 100 MB)</label>
+            <InputFile OnChange="OnFilePicked" accept=".mp4,.webm,.mov" class="file-picker" />
+
+            @if (_selectedFile is not null)
+            {
+                <p class="file-info">Selected: <strong>@_selectedFile.Name</strong> (@FormatSize(_selectedFile.Size))</p>
+            }
+
+            <button type="submit" style="width: 100%; margin-top: 1.5rem;"
+                    disabled="@(_busy || _selectedFile is null)">
+                @(_busy ? "Uploading…" : "Upload")
+            </button>
+        </form>
+    </div>
+</div>
+
+<style>
+    .upload-page { padding: 3rem 1rem; height: 100%; overflow-y: auto; display: flex; justify-content: center; align-items: flex-start; }
+    .upload-page .ef-card { width: 100%; max-width: 640px; text-align: left; }
+    .subtitle { color: var(--ef-brown); margin: 0 0 1.5rem; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+    .file-picker { margin-top: 0.5rem; }
+    .file-info { color: var(--ef-brown); font-size: 0.85rem; margin-top: 0.5rem; }
+</style>
+
+@code {
+    private string  _title       = string.Empty;
+    private string? _description;
+    private string  _publisher   = string.Empty;
+    private string  _producer    = string.Empty;
+    private string  _genre       = string.Empty;
+    private int     _ageRating   = 0;
+    private Microsoft.AspNetCore.Components.Forms.IBrowserFile? _selectedFile;
+    private bool    _busy;
+    private string? _error;
+
+    private const long MaxSize = 100 * 1024 * 1024;
+
+    private void OnFilePicked(Microsoft.AspNetCore.Components.Forms.InputFileChangeEventArgs e)
+    {
+        _selectedFile = e.File;
+        _error        = _selectedFile.Size > MaxSize ? "File exceeds 100 MB limit." : null;
+    }
+
+    private async Task Submit()
+    {
+        if (_selectedFile is null) return;
+        _busy  = true;
+        _error = null;
+
+        await using var stream = _selectedFile.OpenReadStream(MaxSize);
+        var (created, error) = await Api.UploadVideoAsync(
+            _title, _description, _publisher, _producer, _genre, _ageRating,
+            stream, _selectedFile.Name, _selectedFile.ContentType);
+
+        if (created is null)
+        {
+            _error = error;
+            _busy  = false;
+            return;
+        }
+
+        Nav.NavigateTo($"/video/{created.Id}");
+    }
+
+    private static string FormatSize(long bytes) =>
+        bytes < 1024 * 1024
+            ? $"{bytes / 1024:N0} KB"
+            : $"{bytes / (1024.0 * 1024.0):N1} MB";
+}

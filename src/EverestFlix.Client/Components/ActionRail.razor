@@ -1,19 +1,19 @@
-@* Visual-only action rail. Comments/ratings are wired up in Phase 6. *@
+@* Action rail with real hooks for comments and ratings *@
 
 <div class="action-rail">
     <button class="action" title="Like (coming soon)" disabled>
         <span class="action-icon">♡</span>
         <span class="action-count">—</span>
     </button>
-    <button class="action" title="Comments (coming soon)" disabled>
+    <button class="action" title="Comments" @onclick="OnCommentsClick">
         <span class="action-icon">💬</span>
         <span class="action-count">@CommentCount</span>
     </button>
-    <button class="action" title="Rate (coming soon)" disabled>
+    <button class="action" title="Rate" @onclick="OnRateClick">
         <span class="action-icon">★</span>
-        <span class="action-count">—</span>
+        <span class="action-count">@(RatingAverage > 0 ? RatingAverage.ToString("0.0") : "—")</span>
     </button>
-    <button class="action" title="Share" disabled>
+    <button class="action" title="Share" @onclick="OnShareClick">
         <span class="action-icon">↗</span>
     </button>
 </div>
@@ -58,5 +58,9 @@
 </style>
 
 @code {
-    [Parameter] public int CommentCount { get; set; }
+    [Parameter] public int    CommentCount   { get; set; }
+    [Parameter] public double RatingAverage  { get; set; }
+    [Parameter] public EventCallback OnCommentsClick { get; set; }
+    [Parameter] public EventCallback OnRateClick     { get; set; }
+    [Parameter] public EventCallback OnShareClick    { get; set; }
 }

@@ -1,0 +1,93 @@
+@page "/creator/dashboard"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Creator")]
+@inject EverestFlixApiClient Api
+@inject IConfiguration       Config
+
+<PageTitle>Creator Dashboard · EverestFlix</PageTitle>
+
+<div class="dashboard">
+    <div class="header">
+        <h1>Creator Dashboard</h1>
+        <a href="creator/upload" class="upload-cta">+ Upload Video</a>
+    </div>
+
+    @if (_dashboard is null)
+    {
+        <p>Loading…</p>
+    }
+    else
+    {
+        <div class="stat-grid">
+            <div class="stat"><div class="v">@_dashboard.TotalVideos</div><div class="l">Videos</div></div>
+            <div class="stat"><div class="v">@_dashboard.TotalViews</div><div class="l">Total views</div></div>
+            <div class="stat"><div class="v">@_dashboard.AverageRating.ToString("0.0")</div><div class="l">Avg rating</div></div>
+            <div class="stat"><div class="v">@_dashboard.TotalComments</div><div class="l">Comments</div></div>
+        </div>
+
+        <h2 style="margin-top: 2rem;">My videos</h2>
+        @if (_videos.Count == 0)
+        {
+            <p>You haven't uploaded any videos yet.</p>
+        }
+        else
+        {
+            <div class="video-list">
+                @foreach (var v in _videos)
+                {
+                    <a class="video-row" href="video/@v.Id">
+                        <div class="thumb"><video src="@Absolute(v.VideoUrl)" muted preload="metadata"></video></div>
+                        <div class="info">
+                            <div class="title">@v.Title</div>
+                            <div class="meta">#@v.Genre · @v.AgeRating · @v.ViewCount views · @v.CreatedAt.ToLocalTime().ToString("d MMM yyyy")</div>
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+    }
+</div>
+
+<style>
+    .dashboard { padding: 2rem; max-width: 1000px; margin: 0 auto; height: 100%; overflow-y: auto; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+    .upload-cta {
+        background: var(--ef-blue); color: white; padding: 0.6rem 1.1rem;
+        border-radius: var(--ef-radius); text-decoration: none; font-weight: 600;
+    }
+    .upload-cta:hover { background: var(--ef-blue-2); text-decoration: none; }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; }
+    .stat {
+        background: var(--ef-surface); border: 1px solid var(--ef-border);
+        border-radius: var(--ef-radius); padding: 1.25rem;
+    }
+    .stat .v { font-size: 1.8rem; font-weight: 700; color: var(--ef-navy); }
+    .stat .l { color: var(--ef-brown); font-size: 0.85rem; margin-top: 0.25rem; }
+    .video-list { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; }
+    .video-row {
+        display: flex; gap: 1rem; background: var(--ef-surface);
+        border: 1px solid var(--ef-border); border-radius: var(--ef-radius);
+        padding: 0.75rem; text-decoration: none; color: inherit; transition: box-shadow 0.15s;
+    }
+    .video-row:hover { box-shadow: var(--ef-shadow); text-decoration: none; }
+    .video-row .thumb { width: 70px; aspect-ratio: 9/16; background: #000; border-radius: 8px; overflow: hidden; }
+    .video-row .thumb video { width: 100%; height: 100%; object-fit: cover; }
+    .video-row .info .title { font-weight: 600; }
+    .video-row .info .meta { color: var(--ef-brown); font-size: 0.85rem; margin-top: 0.25rem; }
+</style>
+
+@code {
+private CreatorDashboardDto? _dashboard;
+    private List<VideoSummary> _videos = new();
+    private string             _apiBase = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _apiBase   = Config["ApiBaseUrl"] ?? string.Empty;
+        _dashboard = await Api.GetCreatorDashboardAsync();
+        var page   = await Api.GetMyVideosAsync();
+        _videos    = page.Items;
+    }
+
+    private string Absolute(string url) =>
+        url.StartsWith("http") ? url : $"{_apiBase.TrimEnd('/')}{url}";
+}
