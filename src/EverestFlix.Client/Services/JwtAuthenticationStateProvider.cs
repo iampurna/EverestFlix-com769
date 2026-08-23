@@ -22,6 +22,11 @@ public class JwtAuthenticationStateProvider : AuthenticationStateProvider
     }
 
     public string? CurrentToken => _cachedToken;
+    public async Task<string?> GetTokenAsync()
+{
+    _cachedToken ??= await _storage.GetAsync(TokenKey);
+    return _cachedToken;
+}
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
