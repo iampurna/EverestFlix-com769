@@ -1,0 +1,175 @@
+@* One reel: 9:16 phone-frame video centered on a light backdrop. TikTok/Reels style. *@
+
+<div class="reel" data-video-id="@Video.Id">
+    <div class="reel-stage">
+        <div class="phone-frame">
+            <video class="reel-video" playsinline preload="metadata" @onerror="OnVideoError">
+                <source src="@AbsoluteVideoUrl" type="video/mp4" />
+            </video>
+
+            @if (_hasError)
+            {
+                <div class="reel-fallback">
+                    <div class="fallback-inner">
+                        <div class="fallback-badge">Preview unavailable</div>
+                        <p><code>@Video.VideoUrl</code></p>
+                        <p class="hint">Upload real videos as a Creator to see them here.</p>
+                    </div>
+                </div>
+            }
+
+            <div class="reel-meta">
+                <div class="creator">@Video.CreatorName</div>
+                <div class="title">@Video.Title</div>
+                <div class="tags">
+                    <span class="tag">#@Video.Genre</span>
+                    <span class="tag">@Video.AgeRating</span>
+                    <span class="tag">@Video.ViewCount views</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="side-rail">
+            <ActionRail CommentCount="0" />
+        </div>
+    </div>
+</div>
+
+<style>
+    .reel {
+        width: 100%;
+        height: 100%;
+        background: var(--ef-bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem 0;
+    }
+    .reel-stage {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        height: 100%;
+        max-height: 720px;
+    }
+    .phone-frame {
+        position: relative;
+        aspect-ratio: 9 / 16;
+        height: 100%;
+        max-height: 720px;
+        background: #000;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.15);
+        border: 1px solid var(--ef-border);
+    }
+    .reel-video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .reel-fallback {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(180deg, #1e3a8a 0%, #2848a7 100%);
+        color: white;
+    }
+    .fallback-inner { text-align: center; padding: 1.5rem; max-width: 300px; }
+    .fallback-badge {
+        display: inline-block;
+        background: rgba(255,255,255,0.2);
+        color: white;
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    .fallback-inner code {
+        background: rgba(255,255,255,0.15);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        display: inline-block;
+        margin: 0.5rem 0;
+        word-break: break-all;
+    }
+    .fallback-inner .hint {
+        color: rgba(255,255,255,0.7);
+        font-size: 0.8rem;
+        margin-top: 1rem;
+    }
+
+    .reel-meta {
+        position: absolute;
+        bottom: 1rem;
+        left: 1rem;
+        right: 1rem;
+        color: white;
+        z-index: 4;
+        text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+    }
+    .reel-meta .creator {
+        font-weight: 700;
+        margin-bottom: 0.3rem;
+        opacity: 0.95;
+        font-size: 0.9rem;
+    }
+    .reel-meta .title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+        line-height: 1.3;
+    }
+    .reel-meta .tags { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+    .reel-meta .tag {
+        background: rgba(0,0,0,0.5);
+        padding: 0.15rem 0.5rem;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        backdrop-filter: blur(6px);
+    }
+
+    .side-rail {
+        position: relative;
+        width: 48px;
+        height: 100%;
+        max-height: 720px;
+    }
+
+    @@media (max-width: 640px) {
+        .reel { padding: 0; }
+        .phone-frame {
+            border-radius: 0;
+            border: none;
+            height: 100%;
+            max-height: none;
+            width: 100%;
+            box-shadow: none;
+        }
+        .reel-stage { height: 100%; max-height: none; width: 100%; }
+        .side-rail {
+            position: absolute;
+            right: 0;
+            top: 0;
+        }
+    }
+</style>
+
+@code {
+    [Parameter, EditorRequired]
+    public EverestFlix.Client.Models.VideoSummary Video { get; set; } = default!;
+
+    [Parameter]
+    public string ApiBase { get; set; } = string.Empty;
+
+    private bool _hasError;
+
+    private string AbsoluteVideoUrl =>
+        Video.VideoUrl.StartsWith("http") ? Video.VideoUrl : $"{ApiBase.TrimEnd('/')}{Video.VideoUrl}";
+
+    private void OnVideoError() => _hasError = true;
+}

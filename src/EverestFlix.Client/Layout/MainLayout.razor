@@ -1,16 +1,41 @@
 ﻿@inherits LayoutComponentBase
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+<div class="ef-shell">
+    <header class="ef-topbar">
+        <a class="brand" href="/">
+            <span class="monogram">EF</span>
+            <span class="wordmark">EverestFlix</span>
+        </a>
+
+        <div class="topbar-search-wrap">
+            <form class="topbar-search" @onsubmit="OnSearch" @onsubmit:preventDefault>
+                <input class="ef-input" @bind="_searchQuery"
+                       placeholder="Search videos..." />
+            </form>
         </div>
 
-        <article class="content px-4">
-            @Body
-        </article>
+        <div class="topbar-auth">
+            <AuthDisplay />
+        </div>
+    </header>
+
+    <aside class="ef-sidenav">
+        <NavMenu />
+    </aside>
+
+    <main class="ef-main">
+        @Body
     </main>
 </div>
+
+@code {
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    private string _searchQuery = string.Empty;
+
+    private void OnSearch()
+    {
+        var q = _searchQuery?.Trim() ?? string.Empty;
+        Nav.NavigateTo(string.IsNullOrEmpty(q) ? "/search" : $"/search?q={Uri.EscapeDataString(q)}");
+    }
+}

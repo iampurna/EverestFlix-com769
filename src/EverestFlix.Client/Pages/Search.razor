@@ -1,0 +1,186 @@
+@page "/search"
+@inject EverestFlixApiClient Api
+@inject NavigationManager    Nav
+@inject IConfiguration       Config
+
+<PageTitle>Explore · EverestFlix</PageTitle>
+
+<div class="search-page">
+    <h1>Explore</h1>
+
+    <form class="search-form" @onsubmit="OnSearch" @onsubmit:preventDefault>
+        <input class="ef-input" @bind="_query" placeholder="Search title, publisher, producer, genre..." />
+        <button type="submit">Search</button>
+    </form>
+
+    @if (_loading)
+    {
+        <p>Loading…</p>
+    }
+    else if (_results.Count == 0 && _hasSearched)
+    {
+        <div class="ef-empty">
+            <p>No videos matched "<strong>@_lastQuery</strong>".</p>
+        </div>
+    }
+    else if (_results.Count == 0)
+    {
+        <div class="ef-empty">
+            <p>No videos published yet.</p>
+        </div>
+    }
+    else
+    {
+        <p class="result-count">
+            @if (_hasSearched)
+            {
+                <span>@_totalCount result@(_totalCount == 1 ? "" : "s") for "<strong>@_lastQuery</strong>"</span>
+            }
+            else
+            {
+                <span>Latest videos</span>
+            }
+        </p>
+        <div class="result-grid">
+            @foreach (var v in _results)
+            {
+                <a class="result-card" href="video/@v.Id">
+                    <div class="thumb">
+                        <video src="@Absolute(v.VideoUrl)" muted playsinline preload="metadata"></video>
+                        <div class="thumb-overlay">
+                            <span class="play-icon">▶</span>
+                        </div>
+                    </div>
+                    <div class="body">
+                        <div class="creator">@v.CreatorName</div>
+                        <div class="title">@v.Title</div>
+                        <div class="tags">
+                            <span class="tag">#@v.Genre</span>
+                            <span class="tag">@v.AgeRating</span>
+                        </div>
+                    </div>
+                </a>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .search-page { padding: 2rem; max-width: 1100px; margin: 0 auto; height: 100%; overflow-y: auto; }
+    .search-form { display: flex; gap: 0.75rem; margin: 1.5rem 0; }
+    .search-form .ef-input { flex: 1; }
+    .result-count { color: var(--ef-brown); margin: 0 0 1rem; }
+    .result-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+    .result-card {
+        display: block;
+        background: var(--ef-surface);
+        border: 1px solid var(--ef-border);
+        border-radius: var(--ef-radius);
+        overflow: hidden;
+        text-decoration: none;
+        color: inherit;
+        transition: transform 0.12s, box-shadow 0.12s;
+    }
+    .result-card:hover { transform: translateY(-2px); box-shadow: var(--ef-shadow); text-decoration: none; }
+    .result-card .thumb { position: relative; aspect-ratio: 9/16; background: #000; }
+    .result-card .thumb video { width: 100%; height: 100%; object-fit: cover; }
+    .result-card .thumb-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.15);
+        opacity: 0;
+        transition: opacity 0.15s;
+    }
+    .result-card:hover .thumb-overlay { opacity: 1; }
+    .play-icon {
+        color: white;
+        font-size: 2rem;
+        background: rgba(0, 0, 0, 0.5);
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .result-card .body { padding: 0.75rem; }
+    .result-card .creator { color: var(--ef-brown); font-size: 0.8rem; }
+    .result-card .title { font-weight: 600; margin: 0.2rem 0 0.4rem; }
+    .result-card .tags { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+    .result-card .tag { background: var(--ef-bg); padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.7rem; color: var(--ef-brown); }
+</style>
+
+@code {
+    [Parameter, SupplyParameterFromQuery(Name = "q")]
+    public string? InitialQuery { get; set; }
+
+    private string             _query       = string.Empty;
+    private string             _lastQuery   = string.Empty;
+    private List<VideoSummary> _results     = new();
+    private long               _totalCount;
+    private bool               _loading;
+    private bool               _hasSearched;
+    private string             _apiBase = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _apiBase = Config["ApiBaseUrl"] ?? string.Empty;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(InitialQuery))
+        {
+            if (InitialQuery != _lastQuery)
+            {
+                _query = InitialQuery;
+                await Execute(InitialQuery);
+            }
+        }
+        else if (!_hasSearched && _results.Count == 0)
+        {
+            await LoadLatest();
+        }
+    }
+
+    private async Task LoadLatest()
+    {
+        _loading     = true;
+        _hasSearched = false;
+        _lastQuery   = string.Empty;
+        var page     = await Api.GetLatestAsync(1, 24);
+        _results     = page.Items;
+        _totalCount  = page.TotalItems;
+        _loading     = false;
+    }
+
+    private async Task OnSearch()
+    {
+        var q = _query?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(q))
+        {
+            Nav.NavigateTo("/search", replace: true);
+            await LoadLatest();
+            return;
+        }
+        Nav.NavigateTo($"/search?q={Uri.EscapeDataString(q)}", replace: true);
+        await Execute(q);
+    }
+
+    private async Task Execute(string q)
+    {
+        _loading     = true;
+        _hasSearched = true;
+        _lastQuery   = q;
+        var page     = await Api.SearchAsync(q);
+        _results     = page.Items;
+        _totalCount  = page.TotalItems;
+        _loading     = false;
+    }
+
+    private string Absolute(string url) =>
+        url.StartsWith("http") ? url : $"{_apiBase.TrimEnd('/')}{url}";
+}

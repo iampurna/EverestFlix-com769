@@ -1,0 +1,75 @@
+@page "/login"
+@inject EverestFlixApiClient          Api
+@inject JwtAuthenticationStateProvider AuthState
+@inject NavigationManager             Nav
+
+<PageTitle>Log in · EverestFlix</PageTitle>
+
+<div class="auth-page">
+    <div class="ef-card auth-card">
+        <div class="monogram-hero">EF</div>
+        <h1>Welcome back</h1>
+        <p class="subtitle">Sign in to continue to EverestFlix</p>
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="ef-error">@_error</div>
+        }
+
+        <form @onsubmit="Submit" @onsubmit:preventDefault>
+            <label class="ef-label">Email address</label>
+            <input class="ef-input" type="email" @bind="_request.Email" required />
+
+            <label class="ef-label" style="margin-top: 1rem;">Password</label>
+            <input class="ef-input" type="password" @bind="_request.Password" required />
+
+            <button type="submit" style="width: 100%; margin-top: 1.5rem;" disabled="@_busy">
+                @(_busy ? "Signing in…" : "Log in")
+            </button>
+        </form>
+
+        <p class="footer-link">Don't have an account? <a href="register">Create account</a></p>
+    </div>
+</div>
+
+<style>
+    .auth-page { padding: 3rem 1rem; height: 100%; overflow-y: auto; display: flex; justify-content: center; align-items: flex-start; }
+    .auth-card { width: 100%; max-width: 420px; text-align: left; }
+    .monogram-hero {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        background: var(--ef-orange);
+        color: white;
+        border-radius: 12px;
+        font-weight: 800;
+        margin-bottom: 1.5rem;
+    }
+    .subtitle { color: var(--ef-brown); margin: 0 0 1.5rem; }
+    .footer-link { text-align: center; color: var(--ef-brown); margin-top: 1.5rem; }
+</style>
+
+@code {
+    private LoginRequest _request = new();
+    private bool         _busy;
+    private string?      _error;
+
+    private async Task Submit()
+    {
+        _busy  = true;
+        _error = null;
+
+        var (response, error) = await Api.LoginAsync(_request);
+        if (response is null)
+        {
+            _error = error;
+            _busy  = false;
+            return;
+        }
+
+        await AuthState.LogInAsync(response.Token);
+        Nav.NavigateTo("/");
+    }
+}

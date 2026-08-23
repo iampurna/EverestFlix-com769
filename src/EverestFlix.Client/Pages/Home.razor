@@ -1,18 +1,83 @@
 ﻿@page "/"
+@implements IAsyncDisposable
+@inject EverestFlixApiClient Api
+@inject IJSRuntime           JS
+@inject IConfiguration       Config
 
 <PageTitle>EverestFlix</PageTitle>
 
-<div class="ef-hero">
-    <h1>EverestFlix</h1>
-    <p>Short-form video sharing. Frontend coming in Phase 5.</p>
-</div>
+@if (_loading)
+{
+    <div class="ef-empty"><h2>Loading videos…</h2></div>
+}
+else if (!_videos.Any())
+{
+    <div class="ef-empty">
+        <h2>No videos yet</h2>
+        <p>Log in as a Creator and upload the first one.</p>
+    </div>
+}
+else
+{
+    <div class="reels-container" id="reels-container">
+        @foreach (var v in _videos)
+        {
+            <div class="reel-slot">
+                <Reel Video="v" ApiBase="@_apiBase" />
+            </div>
+        }
+    </div>
+}
 
 <style>
-    .ef-hero {
-        text-align: center;
-        padding: 4rem 1rem;
-        font-family: system-ui, -apple-system, sans-serif;
+    .reels-container {
+        height: 100%;
+        width: 100%;
+        overflow-y: scroll;
+        scroll-snap-type: y mandatory;
+        scrollbar-width: none;
     }
-    .ef-hero h1 { font-size: 2.5rem; color: #1a2340; margin: 0 0 0.5rem; }
-    .ef-hero p  { color: #7a5d3a; }
+    .reels-container::-webkit-scrollbar { display: none; }
+    .reel-slot {
+        height: 100%;
+        width: 100%;
+        scroll-snap-align: start;
+    }
 </style>
+
+@code {
+    private List<VideoSummary>          _videos  = new();
+    private bool                        _loading = true;
+    private DotNetObjectReference<Home>? _selfRef;
+    private string                      _apiBase = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _apiBase = Config["ApiBaseUrl"] ?? string.Empty;
+        var page = await Api.GetLatestAsync(1, 10);
+        _videos  = page.Items;
+        _loading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _loading || !_videos.Any()) return;
+
+        _selfRef = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("EverestFlixReels.initialise",
+            _selfRef, "#reels-container", ".reel-slot");
+    }
+
+    [JSInvokable]
+    public Task OnReelChanged(int videoId)
+    {
+        return Task.CompletedTask;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JS.InvokeVoidAsync("EverestFlixReels.dispose"); }
+        catch { }
+        _selfRef?.Dispose();
+    }
+}
