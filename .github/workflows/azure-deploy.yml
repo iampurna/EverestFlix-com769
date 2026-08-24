@@ -1,0 +1,53 @@
+name: EverestFlix CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Run automated tests
+        run: dotnet test --configuration Release --no-build
+
+      - name: Publish API
+        run: |
+          dotnet publish src/EverestFlix.Api/EverestFlix.Api.csproj \
+            --configuration Release \
+            --output publish/api
+
+      - name: Publish Blazor client
+        run: |
+          dotnet publish src/EverestFlix.Client/EverestFlix.Client.csproj \
+            --configuration Release \
+            --output publish/client
+
+      - name: Combine frontend and API
+        run: |
+          mkdir -p publish/api/wwwroot
+          cp -R publish/client/wwwroot/. publish/api/wwwroot/
+
+      - name: Deploy to Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: everestflix-api-com769
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: publish/api
