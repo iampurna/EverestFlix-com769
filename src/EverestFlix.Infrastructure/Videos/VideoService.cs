@@ -116,14 +116,6 @@ public class VideoService : IVideoService
         int id,
         CancellationToken ct = default)
     {
-        // Increment the view count atomically in SQL.
-        await _db.Videos
-            .Where(v => v.Id == id && v.IsPublished)
-            .ExecuteUpdateAsync(
-                setters => setters.SetProperty(
-                    v => v.ViewCount,
-                    v => v.ViewCount + 1),
-                ct);
 
         var video = await _db.Videos
             .AsNoTracking()
@@ -142,7 +134,40 @@ public class VideoService : IVideoService
         return Result<VideoDetailDto>.Success(
             MapDetail(video));
     }
+// ---------------------------------------------------------------------
+// Record video view
+// ---------------------------------------------------------------------
 
+public async Task<Result<long>> RecordViewAsync(
+    int id,
+    CancellationToken ct = default)
+{
+    var affected = await _db.Videos
+        .Where(v =>
+            v.Id == id &&
+            v.IsPublished)
+        .ExecuteUpdateAsync(
+            setters => setters.SetProperty(
+                v => v.ViewCount,
+                v => v.ViewCount + 1),
+            ct);
+
+    if (affected == 0)
+    {
+        return Result<long>.Fail(
+            ErrorCodes.NotFound,
+            "Video not found.");
+    }
+
+    var viewCount = await _db.Videos
+        .AsNoTracking()
+        .Where(v => v.Id == id)
+        .Select(v => v.ViewCount)
+        .SingleAsync(ct);
+
+    return Result<long>.Success(
+        viewCount);
+}
     // ---------------------------------------------------------------------
     // Create video
     // ---------------------------------------------------------------------

@@ -60,7 +60,22 @@ public class EverestFlixApiClient
         res.EnsureSuccessStatusCode();
         return await res.Content.ReadFromJsonAsync<VideoDetail>();
     }
+public async Task<long?> RecordViewAsync(
+    int videoId)
+{
+    var res = await _http.PostAsync(
+        $"api/videos/{videoId}/view",
+        content: null);
 
+    if (!res.IsSuccessStatusCode)
+        return null;
+
+    var payload =
+        await res.Content
+            .ReadFromJsonAsync<ViewCountResponse>();
+
+    return payload?.ViewCount;
+}
     public async Task<(VideoDetail? Response, string? Error)> UploadVideoAsync(
         string title, string? description, string publisher, string producer, string genre,
         int ageRating, Stream fileStream, string fileName, string contentType)

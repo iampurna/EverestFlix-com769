@@ -119,7 +119,33 @@ public class VideosController : ControllerBase
         return Ok(
             result.Value);
     }
+[HttpPost("{id:int}/view")]
+[AllowAnonymous]
+public async Task<IActionResult> RecordView(
+    int id,
+    CancellationToken ct)
+{
+    var result =
+        await _videoService.RecordViewAsync(
+            id,
+            ct);
 
+    if (!result.Succeeded)
+    {
+        return NotFound(
+            new
+            {
+                code = result.ErrorCode,
+                errors = result.Errors
+            });
+    }
+
+    return Ok(
+        new
+        {
+            viewCount = result.Value
+        });
+}
 
     // -----------------------------------------------------------------
     // Creator upload

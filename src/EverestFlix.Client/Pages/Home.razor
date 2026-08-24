@@ -1,82 +1,224 @@
 ﻿@page "/"
+
 @implements IAsyncDisposable
+
 @inject EverestFlixApiClient Api
-@inject IJSRuntime           JS
-@inject IConfiguration       Config
+@inject IJSRuntime JS
+@inject IConfiguration Config
+
 
 <PageTitle>EverestFlix</PageTitle>
 
+
 @if (_loading)
 {
-    <div class="ef-empty"><h2>Loading videos…</h2></div>
+    <div class="ef-empty">
+        <h2>Loading videos…</h2>
+    </div>
 }
 else if (!_videos.Any())
 {
     <div class="ef-empty">
+
         <h2>No videos yet</h2>
-        <p>Log in as a Creator and upload the first one.</p>
+
+        <p>
+            Log in as a Creator and upload the first one.
+        </p>
+
     </div>
 }
 else
 {
-    <div class="reels-container" id="reels-container">
-        @foreach (var v in _videos)
+    <div class="reels-container"
+         id="reels-container">
+
+        @foreach (var video in _videos)
         {
-            <div class="reel-slot">
-                <Reel Video="v" ApiBase="@_apiBase"
+            <div class="reel-slot"
+                 data-video-id="@video.Id">
+
+                <Reel Video="video"
+                      ApiBase="@_apiBase"
                       OnOpenComments="OpenComments"
                       OnOpenRating="OpenRating" />
+
             </div>
         }
+
     </div>
 }
 
-<CommentsPanel @ref="_commentsPanel" VideoId="0" />
-<RatingPicker  @ref="_ratingPicker"  VideoId="0" />
+
+<CommentsPanel
+    @ref="_commentsPanel"
+    VideoId="0" />
+
+<RatingPicker
+    @ref="_ratingPicker"
+    VideoId="0" />
+
 
 <style>
-    .reels-container { height: 100%; width: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; }
-    .reels-container::-webkit-scrollbar { display: none; }
-    .reel-slot { height: 100%; width: 100%; scroll-snap-align: start; }
+
+    .reels-container {
+        height: 100%;
+        width: 100%;
+
+        overflow-y: scroll;
+
+        scroll-snap-type: y mandatory;
+
+        scrollbar-width: none;
+    }
+
+    .reels-container::-webkit-scrollbar {
+        display: none;
+    }
+
+    .reel-slot {
+        height: 100%;
+        width: 100%;
+
+        scroll-snap-align: start;
+    }
+
 </style>
 
+
 @code {
-    private List<VideoSummary>          _videos  = new();
-    private bool                        _loading = true;
+
+    private List<VideoSummary> _videos =
+        new();
+
+    private readonly HashSet<int> _viewedVideoIds =
+        new();
+
+    private bool _loading =
+        true;
+
     private DotNetObjectReference<Home>? _selfRef;
-    private string                      _apiBase = string.Empty;
+
+    private string _apiBase =
+        string.Empty;
 
     private CommentsPanel? _commentsPanel;
-    private RatingPicker?  _ratingPicker;
+
+    private RatingPicker? _ratingPicker;
+
 
     protected override async Task OnInitializedAsync()
     {
-        _apiBase = Config["ApiBaseUrl"] ?? string.Empty;
-        var page = await Api.GetLatestAsync(1, 10);
-        _videos  = page.Items;
-        _loading = false;
+        _apiBase =
+            Config["ApiBaseUrl"]
+            ?? string.Empty;
+
+        var page =
+            await Api.GetLatestAsync(
+                1,
+                10);
+
+        _videos =
+            page.Items;
+
+        _loading =
+            false;
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+
+    protected override async Task OnAfterRenderAsync(
+        bool firstRender)
     {
-        if (!firstRender || _loading || !_videos.Any()) return;
-        _selfRef = DotNetObjectReference.Create(this);
-        await JS.InvokeVoidAsync("EverestFlixReels.initialise",
-            _selfRef, "#reels-container", ".reel-slot");
+        if (!firstRender ||
+            _loading ||
+            !_videos.Any())
+        {
+            return;
+        }
+
+        _selfRef =
+            DotNetObjectReference.Create(
+                this);
+
+        await JS.InvokeVoidAsync(
+            "EverestFlixReels.initialise",
+            _selfRef,
+            "#reels-container",
+            ".reel-slot");
     }
+
 
     [JSInvokable]
-    public Task OnReelChanged(int videoId) => Task.CompletedTask;
+    public async Task OnReelChanged(
+        int videoId)
+    {
+        // Count a particular video only once during
+        // this Home-page session.
+        if (!_viewedVideoIds.Add(videoId))
+        {
+            return;
+        }
 
-    private Task OpenComments(int videoId) =>
-        _commentsPanel is null ? Task.CompletedTask : _commentsPanel.OpenAsync(videoId);
+        var newViewCount =
+            await Api.RecordViewAsync(
+                videoId);
 
-    private Task OpenRating(int videoId) =>
-        _ratingPicker is null ? Task.CompletedTask : _ratingPicker.OpenAsync(videoId);
+        if (!newViewCount.HasValue)
+        {
+            // Allow retry if the request failed.
+            _viewedVideoIds.Remove(videoId);
+
+            return;
+        }
+
+        var video =
+            _videos.FirstOrDefault(
+                v => v.Id == videoId);
+
+        if (video is not null)
+        {
+            video.ViewCount =
+                newViewCount.Value;
+
+            await InvokeAsync(
+                StateHasChanged);
+        }
+    }
+
+
+    private Task OpenComments(
+        int videoId)
+    {
+        return _commentsPanel is null
+            ? Task.CompletedTask
+            : _commentsPanel.OpenAsync(
+                videoId);
+    }
+
+
+    private Task OpenRating(
+        int videoId)
+    {
+        return _ratingPicker is null
+            ? Task.CompletedTask
+            : _ratingPicker.OpenAsync(
+                videoId);
+    }
+
 
     public async ValueTask DisposeAsync()
     {
-        try { await JS.InvokeVoidAsync("EverestFlixReels.dispose"); } catch { }
+        try
+        {
+            await JS.InvokeVoidAsync(
+                "EverestFlixReels.dispose");
+        }
+        catch
+        {
+            // Ignore disposal failures while navigating away.
+        }
+
         _selfRef?.Dispose();
     }
+
 }

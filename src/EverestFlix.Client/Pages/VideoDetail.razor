@@ -483,7 +483,7 @@ private EverestFlix.Client.Models.VideoDetail? _video;
         _loading =
             true;
 
-
+await Api.RecordViewAsync(Id);
         _video =
             await Api.GetVideoAsync(
                 Id);
