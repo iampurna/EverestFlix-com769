@@ -81,12 +81,12 @@ public async Task<long?> RecordViewAsync(
         int ageRating, Stream fileStream, string fileName, string contentType)
     {
         using var content = new MultipartFormDataContent();
-        content.Add(new StringContent(title),             "title");
+        content.Add(new StringContent(title), "title");
         if (!string.IsNullOrEmpty(description))
-            content.Add(new StringContent(description),   "description");
-        content.Add(new StringContent(publisher),         "publisher");
-        content.Add(new StringContent(producer),          "producer");
-        content.Add(new StringContent(genre),             "genre");
+            content.Add(new StringContent(description), "description");
+        content.Add(new StringContent(publisher), "publisher");
+        content.Add(new StringContent(producer), "producer");
+        content.Add(new StringContent(genre), "genre");
         content.Add(new StringContent(ageRating.ToString()), "ageRating");
 
         var streamContent = new StreamContent(fileStream);
@@ -99,6 +99,85 @@ public async Task<long?> RecordViewAsync(
 
         return (null, await FriendlyError(res, "Upload failed."));
     }
+    public async Task<(VideoDetail? Response, string? Error)>
+    UpdateVideoAsync(
+        int id,
+        UpdateVideoRequest request)
+{
+    var res =
+        await _http.PutAsJsonAsync(
+            $"api/videos/{id}",
+            request);
+
+    if (res.IsSuccessStatusCode)
+    {
+        return (
+            await res.Content
+                .ReadFromJsonAsync<VideoDetail>(),
+            null);
+    }
+
+    if (res.StatusCode ==
+        HttpStatusCode.Forbidden)
+    {
+        return (
+            null,
+            "You are not allowed to edit this video.");
+    }
+
+    if (res.StatusCode ==
+        HttpStatusCode.NotFound)
+    {
+        return (
+            null,
+            "Video not found.");
+    }
+
+    return (
+        null,
+        await FriendlyError(
+            res,
+            "Video could not be updated."));
+}
+
+
+public async Task<(bool Success, string? Error)>
+    DeleteVideoAsync(
+        int id)
+{
+    var res =
+        await _http.DeleteAsync(
+            $"api/videos/{id}");
+
+    if (res.IsSuccessStatusCode)
+    {
+        return (
+            true,
+            null);
+    }
+
+    if (res.StatusCode ==
+        HttpStatusCode.Forbidden)
+    {
+        return (
+            false,
+            "You are not allowed to delete this video.");
+    }
+
+    if (res.StatusCode ==
+        HttpStatusCode.NotFound)
+    {
+        return (
+            false,
+            "Video not found.");
+    }
+
+    return (
+        false,
+        await FriendlyError(
+            res,
+            "Video could not be deleted."));
+}
 
     // ---------- Comments ----------
 
