@@ -1,122 +1,471 @@
 @page "/creator/upload"
+
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Creator")]
+
 @inject EverestFlixApiClient Api
-@inject NavigationManager    Nav
+@inject NavigationManager Nav
+
 
 <PageTitle>Upload Video · EverestFlix</PageTitle>
 
-<div class="upload-page">
-    <div class="ef-card">
-        <h1>Upload Video</h1>
-        <p class="subtitle">Share your video with EverestFlix</p>
 
-        @if (!string.IsNullOrEmpty(_error))
+<div class="upload-page">
+
+    <div class="ef-card">
+
+        <h1>Upload Video</h1>
+
+        <p class="subtitle">
+            Share your video with EverestFlix
+        </p>
+
+
+        @if (!string.IsNullOrWhiteSpace(_error))
         {
-            <div class="ef-error">@_error</div>
+            <div class="ef-error">
+                @_error
+            </div>
         }
 
-        <form @onsubmit="Submit" @onsubmit:preventDefault>
-            <label class="ef-label">Title</label>
-            <input class="ef-input" @bind="_title" required maxlength="200" />
 
-            <label class="ef-label" style="margin-top: 1rem;">Description</label>
-            <textarea class="ef-input" @bind="_description" rows="3" maxlength="2000"></textarea>
+        <form @onsubmit="Submit"
+              @onsubmit:preventDefault>
+
+
+            <label class="ef-label">
+                Title
+            </label>
+
+            <input class="ef-input"
+                   @bind="_title"
+                   @bind:event="oninput"
+                   required
+                   maxlength="200" />
+
+
+            <label class="ef-label"
+                   style="margin-top: 1rem;">
+                Description
+            </label>
+
+            <textarea class="ef-input"
+                      @bind="_description"
+                      @bind:event="oninput"
+                      rows="3"
+                      maxlength="2000">
+            </textarea>
+
 
             <div class="row">
+
                 <div>
-                    <label class="ef-label">Publisher</label>
-                    <input class="ef-input" @bind="_publisher" required maxlength="150" />
+
+                    <label class="ef-label">
+                        Publisher
+                    </label>
+
+                    <input class="ef-input"
+                           @bind="_publisher"
+                           @bind:event="oninput"
+                           required
+                           maxlength="150" />
+
                 </div>
+
+
                 <div>
-                    <label class="ef-label">Producer</label>
-                    <input class="ef-input" @bind="_producer" required maxlength="150" />
+
+                    <label class="ef-label">
+                        Producer
+                    </label>
+
+                    <input class="ef-input"
+                           @bind="_producer"
+                           @bind:event="oninput"
+                           required
+                           maxlength="150" />
+
                 </div>
+
             </div>
 
+
             <div class="row">
+
                 <div>
-                    <label class="ef-label">Genre</label>
-                    <input class="ef-input" @bind="_genre" required maxlength="80" />
+
+                    <label class="ef-label">
+                        Genre
+                    </label>
+
+                    <input class="ef-input"
+                           @bind="_genre"
+                           @bind:event="oninput"
+                           required
+                           maxlength="80" />
+
                 </div>
+
+
                 <div>
-                    <label class="ef-label">Age rating</label>
-                    <select class="ef-input" @bind="_ageRating">
-                        <option value="0">U (Universal)</option>
-                        <option value="1">PG</option>
-                        <option value="12">12</option>
-                        <option value="15">15</option>
-                        <option value="18">18</option>
+
+                    <label class="ef-label">
+                        Age rating
+                    </label>
+
+                    <select class="ef-input"
+                            @bind="_ageRating">
+
+                        <option value="0">
+                            U (Universal)
+                        </option>
+
+                        <option value="1">
+                            PG
+                        </option>
+
+                        <option value="12">
+                            12
+                        </option>
+
+                        <option value="15">
+                            15
+                        </option>
+
+                        <option value="18">
+                            18
+                        </option>
+
                     </select>
+
                 </div>
+
             </div>
 
-            <label class="ef-label" style="margin-top: 1rem;">Video file (MP4, WebM, MOV — max 100 MB)</label>
-            <InputFile OnChange="OnFilePicked" accept=".mp4,.webm,.mov" class="file-picker" />
+
+            <label class="ef-label"
+                   style="margin-top: 1rem;">
+
+                Video file (MP4 only — max 100 MB)
+
+            </label>
+
+
+            <InputFile OnChange="OnFilePicked"
+                       accept=".mp4,video/mp4"
+                       class="file-picker" />
+
 
             @if (_selectedFile is not null)
             {
-                <p class="file-info">Selected: <strong>@_selectedFile.Name</strong> (@FormatSize(_selectedFile.Size))</p>
+                <p class="file-info">
+
+                    Selected:
+                    <strong>
+                        @_selectedFile.Name
+                    </strong>
+
+                    (@FormatSize(_selectedFile.Size))
+
+                </p>
             }
 
-            <button type="submit" style="width: 100%; margin-top: 1.5rem;"
-                    disabled="@(_busy || _selectedFile is null)">
-                @(_busy ? "Uploading…" : "Upload")
+
+            <button type="submit"
+                    style="width: 100%; margin-top: 1.5rem;"
+                    disabled="@(!CanSubmit)">
+
+                @(_busy
+                    ? "Uploading…"
+                    : "Upload")
+
             </button>
+
         </form>
+
     </div>
+
 </div>
 
+
 <style>
-    .upload-page { padding: 3rem 1rem; height: 100%; overflow-y: auto; display: flex; justify-content: center; align-items: flex-start; }
-    .upload-page .ef-card { width: 100%; max-width: 640px; text-align: left; }
-    .subtitle { color: var(--ef-brown); margin: 0 0 1.5rem; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
-    .file-picker { margin-top: 0.5rem; }
-    .file-info { color: var(--ef-brown); font-size: 0.85rem; margin-top: 0.5rem; }
+
+    .upload-page {
+        padding: 3rem 1rem;
+
+        height: 100%;
+
+        overflow-y: auto;
+
+        display: flex;
+
+        justify-content: center;
+
+        align-items: flex-start;
+    }
+
+
+    .upload-page .ef-card {
+        width: 100%;
+
+        max-width: 640px;
+
+        text-align: left;
+    }
+
+
+    .subtitle {
+        color: var(--ef-brown);
+
+        margin:
+            0 0 1.5rem;
+    }
+
+
+    .row {
+        display: grid;
+
+        grid-template-columns:
+            1fr 1fr;
+
+        gap: 1rem;
+
+        margin-top: 1rem;
+    }
+
+
+    .file-picker {
+        margin-top: 0.5rem;
+    }
+
+
+    .file-info {
+        color: var(--ef-brown);
+
+        font-size: 0.85rem;
+
+        margin-top: 0.5rem;
+    }
+
+
+    @@media (max-width: 640px) {
+
+        .row {
+            grid-template-columns: 1fr;
+        }
+
+    }
+
 </style>
 
+
 @code {
-    private string  _title       = string.Empty;
+
+    // Keep this identical to the API/storage limit.
+    private const long MaxVideoBytes = 100_000_000;
+
+
+    private string _title =
+        string.Empty;
+
     private string? _description;
-    private string  _publisher   = string.Empty;
-    private string  _producer    = string.Empty;
-    private string  _genre       = string.Empty;
-    private int     _ageRating   = 0;
-    private Microsoft.AspNetCore.Components.Forms.IBrowserFile? _selectedFile;
-    private bool    _busy;
+
+    private string _publisher =
+        string.Empty;
+
+    private string _producer =
+        string.Empty;
+
+    private string _genre =
+        string.Empty;
+
+    private int _ageRating;
+
+
+    private IBrowserFile? _selectedFile;
+
+    private bool _busy;
+
     private string? _error;
 
-    private const long MaxSize = 100 * 1024 * 1024;
 
-    private void OnFilePicked(Microsoft.AspNetCore.Components.Forms.InputFileChangeEventArgs e)
+    private bool CanSubmit =>
+        !_busy &&
+        _selectedFile is not null &&
+        ValidateFile(_selectedFile) is null &&
+        !string.IsNullOrWhiteSpace(_title) &&
+        !string.IsNullOrWhiteSpace(_publisher) &&
+        !string.IsNullOrWhiteSpace(_producer) &&
+        !string.IsNullOrWhiteSpace(_genre);
+
+
+    private void OnFilePicked(
+        InputFileChangeEventArgs e)
     {
-        _selectedFile = e.File;
-        _error        = _selectedFile.Size > MaxSize ? "File exceeds 100 MB limit." : null;
+        _selectedFile =
+            e.File;
+
+        _error =
+            ValidateFile(_selectedFile);
     }
+
+
+    private static string? ValidateFile(
+        IBrowserFile file)
+    {
+        if (file.Size <= 0)
+        {
+            return "The selected video file is empty.";
+        }
+
+
+        if (file.Size > MaxVideoBytes)
+        {
+            return "Video must not exceed 100 MB.";
+        }
+
+
+        var extension =
+            Path.GetExtension(file.Name);
+
+        if (!string.Equals(
+                extension,
+                ".mp4",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return "Only MP4 video files are supported.";
+        }
+
+
+        if (!string.Equals(
+                file.ContentType,
+                "video/mp4",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return "The selected file must have the video/mp4 content type.";
+        }
+
+
+        return null;
+    }
+
+
+    private string? ValidateForm()
+    {
+        if (string.IsNullOrWhiteSpace(_title))
+            return "Title is required.";
+
+        if (string.IsNullOrWhiteSpace(_publisher))
+            return "Publisher is required.";
+
+        if (string.IsNullOrWhiteSpace(_producer))
+            return "Producer is required.";
+
+        if (string.IsNullOrWhiteSpace(_genre))
+            return "Genre is required.";
+
+        if (_title.Trim().Length > 200)
+            return "Title must not exceed 200 characters.";
+
+        if ((_description?.Trim().Length ?? 0) > 2000)
+            return "Description must not exceed 2000 characters.";
+
+        if (_publisher.Trim().Length > 150)
+            return "Publisher must not exceed 150 characters.";
+
+        if (_producer.Trim().Length > 150)
+            return "Producer must not exceed 150 characters.";
+
+        if (_genre.Trim().Length > 80)
+            return "Genre must not exceed 80 characters.";
+
+        if (_ageRating is not (0 or 1 or 12 or 15 or 18))
+            return "Invalid age rating.";
+
+        if (_selectedFile is null)
+            return "Please select an MP4 video.";
+
+        return ValidateFile(_selectedFile);
+    }
+
 
     private async Task Submit()
     {
-        if (_selectedFile is null) return;
-        _busy  = true;
-        _error = null;
+        _error =
+            ValidateForm();
 
-        await using var stream = _selectedFile.OpenReadStream(MaxSize);
-        var (created, error) = await Api.UploadVideoAsync(
-            _title, _description, _publisher, _producer, _genre, _ageRating,
-            stream, _selectedFile.Name, _selectedFile.ContentType);
-
-        if (created is null)
-        {
-            _error = error;
-            _busy  = false;
+        if (_error is not null)
             return;
-        }
 
-        Nav.NavigateTo($"/video/{created.Id}");
+
+        _busy =
+            true;
+
+
+        try
+        {
+            var file =
+                _selectedFile!;
+
+
+            await using var stream =
+                file.OpenReadStream(
+                    MaxVideoBytes);
+
+
+            var (created, error) =
+                await Api.UploadVideoAsync(
+                    _title.Trim(),
+                    string.IsNullOrWhiteSpace(_description)
+                        ? null
+                        : _description.Trim(),
+                    _publisher.Trim(),
+                    _producer.Trim(),
+                    _genre.Trim(),
+                    _ageRating,
+                    stream,
+                    file.Name,
+                    file.ContentType);
+
+
+            if (created is null)
+            {
+                _error =
+                    error ??
+                    "Upload failed.";
+
+                return;
+            }
+
+
+            Nav.NavigateTo(
+                $"/video/{created.Id}");
+        }
+        catch
+        {
+            _error =
+                "The video could not be uploaded. Please try again.";
+        }
+        finally
+        {
+            _busy =
+                false;
+        }
     }
 
-    private static string FormatSize(long bytes) =>
-        bytes < 1024 * 1024
-            ? $"{bytes / 1024:N0} KB"
-            : $"{bytes / (1024.0 * 1024.0):N1} MB";
+
+    private static string FormatSize(
+        long bytes)
+    {
+        if (bytes < 1_000_000)
+        {
+            return
+                $"{bytes / 1_000.0:N1} KB";
+        }
+
+
+        return
+            $"{bytes / 1_000_000.0:N1} MB";
+    }
+
 }
