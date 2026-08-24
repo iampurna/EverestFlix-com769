@@ -1,73 +1,131 @@
 # EverestFlix
 
-A scalable, cloud-native short-form video-sharing web application built for **COM769 — Scalable Advanced Software Solutions** (MSc Computer Science, Ulster University).
+EverestFlix is a scalable short-form video-sharing web application developed for **COM769 — Scalable Advanced Software Solutions**.
 
-> Status: 🚧 In active development. Currently at end of Phase 1 (solution scaffold).
+The system follows a separated client/API architecture and is designed for cloud deployment on Microsoft Azure.
 
-## Tech stack
+## Current Status
 
-| Layer          | Technology                                    |
-| -------------- | --------------------------------------------- |
-| Frontend       | Blazor WebAssembly (.NET 8)                   |
-| Backend API    | ASP.NET Core 8 Web API                        |
-| ORM            | Entity Framework Core 8                       |
-| Identity       | ASP.NET Core Identity + JWT                   |
-| Database       | SQLite (local dev) · Azure SQL (production)   |
-| Media storage  | Local filesystem (dev) · Azure Blob (prod)    |
-| CI/CD          | GitHub Actions                                |
-| Cloud          | Microsoft Azure                               |
+✅ Core local application complete  
+✅ Authentication and role-based authorization complete  
+✅ Creator video upload and management complete  
+✅ Consumer interaction features complete  
+✅ Automated unit and API integration testing complete  
+🔜 Azure deployment and cloud-service integration next
 
-## Solution structure
+---
 
-src/
-├── EverestFlix.Domain/ Entities, enums, domain constants
-├── EverestFlix.Application/ Interfaces, DTOs, service contracts
-├── EverestFlix.Infrastructure/ EF Core, Identity, storage implementations
-├── EverestFlix.Api/ REST controllers, Program.cs
-└── EverestFlix.Client/ Blazor WebAssembly SPA
+## Core Features
 
-tests/
-├── EverestFlix.UnitTests/
-└── EverestFlix.IntegrationTests/
+### Consumer
 
+- Register and log in
+- Browse latest short-form videos
+- Search videos
+- Play videos through the reels interface
+- View video metadata
+- Post comments
+- Rate videos from 1–5
+- View rating summaries
+- View personal profile
 
-Dependency direction: `Domain <- Application <- Infrastructure <- Api`. `Client` talks to `Api` over HTTP only.
+### Creator
 
-## Local development
+Creators have all standard authenticated functionality plus:
 
-Prerequisites: **.NET 8 SDK** (this repo pins `8.0.424` via `global.json`).
+- Creator dashboard
+- MP4 video upload
+- Required metadata:
+  - Title
+  - Publisher
+  - Producer
+  - Genre
+  - Age rating
+- Edit owned videos
+- Delete owned videos
+- View uploaded-video statistics
 
-```bash
-dotnet restore
-dotnet build
-dotnet test
-```
+Public registration creates **Consumer** accounts only.
 
-Detailed setup, run instructions, and API documentation will be added as features are implemented.
+Creator accounts are provisioned separately rather than through public registration.
 
-## Documentation
+### Administration
 
-Additional docs live in `docs/`:
+- Administrator role supported through ASP.NET Core Identity
+- Role-based authorization
+- Administrative identity separated from Creator functionality
 
-- `docs/architecture/` — architecture diagrams and decision records _(planned)_
-- `docs/testing/` — test plan and results _(planned)_
-- `docs/screenshots/` — evidence for coursework submission _(planned)_
+---
 
-## Roadmap
+## Technology Stack
 
-| Phase | Description                              | Status         |
-| ----- | ---------------------------------------- | -------------- |
-| 1     | Solution scaffold                        | ✅ Implemented |
-| 2     | Domain model & persistence               | 🔜 Planned     |
-| 3     | Authentication & role authorization      | 🔜 Planned     |
-| 4     | Video CRUD & storage abstraction         | 🔜 Planned     |
-| 5     | Reels UI                                 | 🔜 Planned     |
-| 6     | Comments, ratings, creator dashboard     | 🔜 Planned     |
-| 7     | Automated testing                        | 🔜 Planned     |
-| 8     | Azure deployment                         | 🔜 Planned     |
-| 9     | GitHub Actions CI/CD                     | 🔜 Planned     |
-| 10    | Advanced feature: Azure AI sentiment     | 🔜 Planned     |
+| Layer | Technology |
+| --- | --- |
+| Frontend | Blazor WebAssembly (.NET 8) |
+| Backend | ASP.NET Core 8 Web API |
+| ORM | Entity Framework Core 8 |
+| Authentication | ASP.NET Core Identity + JWT |
+| Local database | SQLite |
+| Local media storage | Filesystem storage |
+| Testing | xUnit + ASP.NET Core integration testing |
+| Production database | Azure SQL planned |
+| Production media | Azure Blob Storage planned |
+| Hosting | Microsoft Azure planned |
+| CI/CD | GitHub Actions planned |
 
-## License
+---
 
-Academic coursework submission — not licensed for redistribution.
+## Architecture
+
+```text
+Blazor WebAssembly Client
+          |
+          | HTTPS / REST
+          v
+ASP.NET Core Web API
+          |
+          +------------------+
+          |                  |
+          v                  v
+ Entity Framework       Video Storage
+          |                  |
+          v                  v
+       SQLite            Local Files
+     (local dev)         (local dev)
+     Internet
+   |
+   v
+Azure-hosted Blazor Client
+   |
+   v
+ASP.NET Core API
+   |
+   +--------------------+
+   |                    |
+   v                    v
+Azure SQL         Azure Blob Storage
+
+EverestFlix/
+├── src/
+│   ├── EverestFlix.Client/
+│   ├── EverestFlix.Api/
+│   ├── EverestFlix.Application/
+│   ├── EverestFlix.Domain/
+│   └── EverestFlix.Infrastructure/
+│
+├── tests/
+│   ├── EverestFlix.UnitTests/
+│   └── EverestFlix.IntegrationTests/
+│
+├── docs/
+├── .github/
+├── EverestFlix.sln
+└── README.md
+
+Project Responsibilities
+EverestFlix.Domain — entities, enums and domain constants
+EverestFlix.Application — DTOs, interfaces and application contracts
+EverestFlix.Infrastructure — Entity Framework Core, Identity, storage and service implementations
+EverestFlix.Api — REST API, authentication pipeline and controllers
+EverestFlix.Client — Blazor WebAssembly user interface
+The client communicates with the backend only through HTTP REST endpoints.
