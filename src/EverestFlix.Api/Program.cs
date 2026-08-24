@@ -7,6 +7,7 @@ using EverestFlix.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.StaticFiles;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -97,13 +98,35 @@ else
     app.UseHttpsRedirection();
 }
 
-// Serve /uploads/videos/*.mp4 as static files
-app.UseStaticFiles();
+app.UseDefaultFiles();
+
+var contentTypeProvider =
+    new FileExtensionContentTypeProvider();
+
+contentTypeProvider.Mappings[".dat"] =
+    "application/octet-stream";
+
+contentTypeProvider.Mappings[".wasm"] =
+    "application/wasm";
+
+contentTypeProvider.Mappings[".blat"] =
+    "application/octet-stream";
+
+app.UseStaticFiles(
+    new StaticFileOptions
+    {
+        ContentTypeProvider =
+            contentTypeProvider
+    });
 
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
+
+// Send non-API browser routes back to the Blazor SPA.
+app.MapFallbackToFile("index.html");
 
 app.Run();
 // Exposes the top-level API entry point to WebApplicationFactory
