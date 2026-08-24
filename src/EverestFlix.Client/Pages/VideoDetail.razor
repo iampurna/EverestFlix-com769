@@ -1,140 +1,602 @@
 @page "/video/{Id:int}"
-@inject EverestFlixApiClient Api
-@inject IConfiguration       Config
 
-<PageTitle>@(_video?.Title ?? "Video") · EverestFlix</PageTitle>
+@inject EverestFlixApiClient Api
+@inject IConfiguration Config
+
+
+<PageTitle>
+    @(_video?.Title ?? "Video") · EverestFlix
+</PageTitle>
+
 
 @if (_loading)
 {
-    <div class="ef-empty"><p>Loading…</p></div>
+    <div class="ef-empty">
+        <p>Loading…</p>
+    </div>
 }
 else if (_video is null)
 {
     <div class="ef-empty">
-        <h2>Video not found</h2>
-        <p>The video you're looking for doesn't exist or has been removed.</p>
+
+        <h2>
+            Video not found
+        </h2>
+
+        <p>
+            The video you're looking for
+            doesn't exist or has been removed.
+        </p>
+
     </div>
 }
 else
 {
     <div class="detail-page">
+
         <div class="detail-grid">
+
+
             <div class="player-column">
+
                 <div class="phone-frame">
-                    <video controls autoplay muted playsinline preload="metadata">
-                        <source src="@Absolute(_video.VideoUrl)" type="video/mp4" />
+
+                    <video controls
+                           autoplay
+                           muted
+                           loop
+                           playsinline
+                           preload="metadata">
+
+                        <source
+                            src="@Absolute(_video.VideoUrl)"
+                            type="video/mp4" />
+
                     </video>
+
                 </div>
+
             </div>
 
+
             <div class="meta-column">
-                <h1>@_video.Title</h1>
-                <p class="creator">by @_video.CreatorName</p>
+
+                <h1>
+                    @_video.Title
+                </h1>
+
+
+                <p class="creator">
+                    by @_video.CreatorName
+                </p>
+
+
                 <div class="chips">
-                    <span class="chip">#@_video.Genre</span>
-                    <span class="chip">@_video.AgeRating</span>
-                    <span class="chip">@_video.ViewCount views</span>
+
+                    <span class="chip">
+                        #@_video.Genre
+                    </span>
+
+                    <span class="chip">
+                        @DisplayAgeRating(_video.AgeRating)
+                    </span>
+
+                    <span class="chip">
+                        @_video.ViewCount views
+                    </span>
+
                 </div>
-                @if (!string.IsNullOrWhiteSpace(_video.Description))
+
+
+                <div class="interaction-summary">
+
+                    <div class="rating-summary">
+
+                        <strong>
+
+                            @if (_rating.Count > 0)
+                            {
+                                <span>
+                                    @_rating.Average.ToString("0.0") ★
+                                </span>
+                            }
+                            else
+                            {
+                                <span>
+                                    No ratings
+                                </span>
+                            }
+
+                        </strong>
+
+                        @if (_rating.Count > 0)
+                        {
+                            <span>
+                                @_rating.Count
+                                rating@(_rating.Count == 1 ? "" : "s")
+                            </span>
+                        }
+
+                    </div>
+
+
+                    <div class="interaction-buttons">
+
+                        <button type="button"
+                                class="ef-ghost"
+                                @onclick="OpenComments">
+
+                            💬 @_commentCount
+                            comment@(_commentCount == 1 ? "" : "s")
+
+                        </button>
+
+
+                        <button type="button"
+                                @onclick="OpenRating">
+
+                            ★ Rate video
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                @if (!string.IsNullOrWhiteSpace(
+                        _video.Description))
                 {
-                    <p class="description">@_video.Description</p>
+                    <p class="description">
+                        @_video.Description
+                    </p>
                 }
+
+
                 <dl class="specs">
-                    <dt>Publisher</dt> <dd>@_video.Publisher</dd>
-                    <dt>Producer</dt>  <dd>@_video.Producer</dd>
-                    <dt>Uploaded</dt>  <dd>@_video.CreatedAt.ToLocalTime().ToString("d MMM yyyy")</dd>
+
+                    <dt>
+                        Publisher
+                    </dt>
+
+                    <dd>
+                        @_video.Publisher
+                    </dd>
+
+
+                    <dt>
+                        Producer
+                    </dt>
+
+                    <dd>
+                        @_video.Producer
+                    </dd>
+
+
+                    <dt>
+                        Uploaded
+                    </dt>
+
+                    <dd>
+    @(_video.CreatedAt.ToLocalTime().ToString("d MMM yyyy"))
+</dd>
+
                 </dl>
+
             </div>
+
         </div>
+
     </div>
 }
 
+
+<CommentsPanel
+    @ref="_commentsPanel"
+    VideoId="@Id"
+    OnCountChanged="UpdateCommentCount" />
+
+
+<RatingPicker
+    @ref="_ratingPicker"
+    VideoId="@Id"
+    OnSummaryChanged="UpdateRatingSummary" />
+
+
 <style>
+
     .detail-page {
         padding: 2rem;
+
         height: 100%;
+
         overflow-y: auto;
-        background: var(--ef-bg);
+
+        background:
+            var(--ef-bg);
     }
+
+
     .detail-grid {
         display: grid;
-        grid-template-columns: auto 1fr;
+
+        grid-template-columns:
+            auto 1fr;
+
         gap: 2.5rem;
-        max-width: 1000px;
+
+        max-width: 1050px;
+
         margin: 0 auto;
+
         align-items: start;
     }
-    .player-column { display: flex; justify-content: center; }
+
+
+    .player-column {
+        display: flex;
+
+        justify-content: center;
+    }
+
+
     .phone-frame {
         position: relative;
+
         width: 360px;
+
         aspect-ratio: 9 / 16;
+
         background: #000;
+
         border-radius: 20px;
+
         overflow: hidden;
-        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.15);
-        border: 1px solid var(--ef-border);
+
+        box-shadow:
+            0 20px 60px
+            rgba(15, 23, 42, 0.15);
+
+        border:
+            1px solid var(--ef-border);
     }
+
+
     .phone-frame video {
         width: 100%;
+
         height: 100%;
+
         object-fit: cover;
     }
 
-    .meta-column h1 { margin-bottom: 0.25rem; }
-    .meta-column .creator { color: var(--ef-brown); margin: 0 0 1rem; }
-    .chips { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+
+    .meta-column h1 {
+        margin-bottom:
+            0.25rem;
+    }
+
+
+    .creator {
+        color:
+            var(--ef-brown);
+
+        margin:
+            0 0 1rem;
+    }
+
+
+    .chips {
+        display: flex;
+
+        gap: 0.5rem;
+
+        flex-wrap: wrap;
+
+        margin-bottom: 1rem;
+    }
+
+
     .chip {
-        background: var(--ef-surface);
-        border: 1px solid var(--ef-border);
-        padding: 0.25rem 0.7rem;
-        border-radius: 999px;
-        font-size: 0.8rem;
-        color: var(--ef-brown);
+        background:
+            var(--ef-surface);
+
+        border:
+            1px solid var(--ef-border);
+
+        padding:
+            0.25rem 0.7rem;
+
+        border-radius:
+            999px;
+
+        font-size:
+            0.8rem;
+
+        color:
+            var(--ef-brown);
     }
+
+
+    .interaction-summary {
+        background:
+            var(--ef-surface);
+
+        border:
+            1px solid var(--ef-border);
+
+        border-radius:
+            var(--ef-radius);
+
+        padding:
+            1rem;
+
+        margin:
+            1rem 0;
+    }
+
+
+    .rating-summary {
+        display: flex;
+
+        align-items: center;
+
+        gap: 0.5rem;
+
+        color:
+            var(--ef-brown);
+
+        margin-bottom:
+            0.9rem;
+    }
+
+
+    .rating-summary strong {
+        color:
+            var(--ef-navy);
+
+        font-size:
+            1.1rem;
+    }
+
+
+    .interaction-buttons {
+        display: flex;
+
+        gap: 0.75rem;
+
+        flex-wrap: wrap;
+    }
+
+
     .description {
-        line-height: 1.6;
-        margin: 1rem 0;
-        padding: 1rem;
-        background: var(--ef-surface);
-        border-radius: var(--ef-radius);
-        border: 1px solid var(--ef-border);
+        line-height:
+            1.6;
+
+        margin:
+            1rem 0;
+
+        padding:
+            1rem;
+
+        background:
+            var(--ef-surface);
+
+        border-radius:
+            var(--ef-radius);
+
+        border:
+            1px solid var(--ef-border);
     }
+
+
     .specs {
         display: grid;
-        grid-template-columns: max-content 1fr;
-        column-gap: 1.5rem;
-        row-gap: 0.35rem;
-        margin-top: 1.5rem;
+
+        grid-template-columns:
+            max-content 1fr;
+
+        column-gap:
+            1.5rem;
+
+        row-gap:
+            0.35rem;
+
+        margin-top:
+            1.5rem;
     }
-    .specs dt { color: var(--ef-brown); font-weight: 600; }
-    .specs dd { margin: 0; }
+
+
+    .specs dt {
+        color:
+            var(--ef-brown);
+
+        font-weight:
+            600;
+    }
+
+
+    .specs dd {
+        margin: 0;
+    }
+
 
     @@media (max-width: 768px) {
-        .detail-page { padding: 1rem; }
+
+        .detail-page {
+            padding: 1rem;
+        }
+
         .detail-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns:
+                1fr;
+
             gap: 1.5rem;
         }
-        .phone-frame { width: 100%; max-width: 360px; }
+
+        .phone-frame {
+            width: 100%;
+
+            max-width: 360px;
+        }
+
     }
+
 </style>
 
+
 @code {
-    [Parameter] public int Id { get; set; }
 
-    private EverestFlix.Client.Models.VideoDetail? _video;
-    private bool   _loading = true;
-    private string _apiBase = string.Empty;
+    [Parameter]
+    public int Id { get; set; }
 
-    protected override async Task OnParametersSetAsync()
+
+private EverestFlix.Client.Models.VideoDetail? _video;
+
+    private bool _loading =
+        true;
+
+    private string _apiBase =
+        string.Empty;
+
+
+    private int _commentCount;
+
+    private RatingSummary _rating =
+        new();
+
+
+    private CommentsPanel?
+        _commentsPanel;
+
+    private RatingPicker?
+        _ratingPicker;
+
+
+    protected override async Task
+        OnParametersSetAsync()
     {
-        _apiBase = Config["ApiBaseUrl"] ?? string.Empty;
-        _loading = true;
-        _video   = await Api.GetVideoAsync(Id);
-        _loading = false;
+        _apiBase =
+            Config["ApiBaseUrl"] ??
+            string.Empty;
+
+        _loading =
+            true;
+
+
+        _video =
+            await Api.GetVideoAsync(
+                Id);
+
+
+        if (_video is not null)
+        {
+            try
+            {
+                var comments =
+                    await Api.GetCommentsAsync(
+                        Id,
+                        page: 1,
+                        pageSize: 1);
+
+                _commentCount =
+                    (int)Math.Min(
+                        comments.TotalItems,
+                        int.MaxValue);
+
+
+                _rating =
+                    await Api.GetRatingAsync(
+                        Id);
+            }
+            catch
+            {
+                _commentCount =
+                    0;
+
+                _rating =
+                    new RatingSummary();
+            }
+        }
+
+
+        _loading =
+            false;
     }
 
-    private string Absolute(string url) =>
-        url.StartsWith("http") ? url : $"{_apiBase.TrimEnd('/')}{url}";
+
+    private Task OpenComments()
+    {
+        return _commentsPanel is null
+            ? Task.CompletedTask
+            : _commentsPanel.OpenAsync(Id);
+    }
+
+
+    private Task OpenRating()
+    {
+        return _ratingPicker is null
+            ? Task.CompletedTask
+            : _ratingPicker.OpenAsync(Id);
+    }
+
+
+    private void UpdateCommentCount(
+        int total)
+    {
+        _commentCount =
+            total;
+
+        StateHasChanged();
+    }
+
+
+    private void UpdateRatingSummary(
+        RatingSummary summary)
+    {
+        _rating =
+            summary;
+
+        StateHasChanged();
+    }
+
+
+    private string Absolute(
+        string url)
+    {
+        return url.StartsWith(
+            "http",
+            StringComparison.OrdinalIgnoreCase)
+
+            ? url
+
+            : $"{_apiBase.TrimEnd('/')}{url}";
+    }
+
+
+    private static string DisplayAgeRating(
+        AgeRating rating)
+    {
+        return rating switch
+        {
+            AgeRating.U =>
+                "U",
+
+            AgeRating.PG =>
+                "PG",
+
+            AgeRating.Twelve =>
+                "12",
+
+            AgeRating.Fifteen =>
+                "15",
+
+            AgeRating.Eighteen =>
+                "18",
+
+            _ =>
+                rating.ToString()
+        };
+    }
+
 }
