@@ -26,6 +26,8 @@ jobs:
         run: dotnet build --configuration Release --no-restore
 
       - name: Run automated tests
+        env:
+          Jwt__Key: ci-bootstrap-test-jwt-signing-key-everestflix-2026-abcdef1234567890
         run: dotnet test --configuration Release --no-build
 
       - name: Publish API
