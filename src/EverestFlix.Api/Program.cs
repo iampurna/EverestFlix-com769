@@ -106,3 +106,8 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+// Exposes the top-level API entry point to WebApplicationFactory
+// for integration testing. This does not change runtime behaviour.
+public partial class Program
+{
+}
