@@ -1,70 +1,247 @@
 <div class="auth-display">
+
     <AuthorizeView>
+
         <Authorized>
-            <span class="role-badge @(IsCreator(context) ? "creator" : "consumer")">
-                @(IsCreator(context) ? "Creator" : "Consumer")
+
+            <span class="role-badge @GetRoleCssClass(context)">
+                @GetRoleLabel(context)
             </span>
-            <span class="user-name">@GetName(context)</span>
-            <button class="ef-ghost" @onclick="LogOut">Log out</button>
+
+
+            <span class="user-name">
+                @GetName(context)
+            </span>
+
+
+            <button type="button"
+                    class="ef-ghost"
+                    @onclick="LogOut">
+
+                Log out
+
+            </button>
+
         </Authorized>
+
+
         <NotAuthorized>
-            <a href="login" class="link-btn">Log in</a>
-            <a href="register" class="link-btn primary">Sign up</a>
+
+            <a href="/login"
+               class="link-btn">
+
+                Log in
+
+            </a>
+
+
+            <a href="/register"
+               class="link-btn primary">
+
+                Sign up
+
+            </a>
+
         </NotAuthorized>
+
     </AuthorizeView>
+
 </div>
 
+
 <style>
+
     .auth-display {
         display: flex;
+
         align-items: center;
+
         gap: 0.75rem;
     }
-    .auth-display .user-name { font-weight: 600; }
-    .auth-display .role-badge {
-        padding: 0.15rem 0.55rem;
-        border-radius: 999px;
-        font-size: 0.7rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    .auth-display .role-badge.creator {
-        background: var(--ef-blue);
-        color: white;
-    }
-    .auth-display .role-badge.consumer {
-        background: var(--ef-border);
-        color: var(--ef-brown);
-    }
-    .auth-display .link-btn {
-        padding: 0.4rem 0.9rem;
-        border-radius: var(--ef-radius);
+
+
+    .auth-display .user-name {
         font-weight: 600;
-        color: var(--ef-navy);
-        text-decoration: none;
     }
-    .auth-display .link-btn:hover { text-decoration: none; background: var(--ef-bg); }
+
+
+    .auth-display .role-badge {
+        padding:
+            0.15rem 0.55rem;
+
+        border-radius:
+            999px;
+
+        font-size:
+            0.7rem;
+
+        font-weight:
+            700;
+
+        text-transform:
+            uppercase;
+
+        letter-spacing:
+            0.5px;
+    }
+
+
+    .auth-display .role-badge.creator {
+        background:
+            var(--ef-blue);
+
+        color:
+            white;
+    }
+
+
+    .auth-display .role-badge.consumer {
+        background:
+            var(--ef-border);
+
+        color:
+            var(--ef-brown);
+    }
+
+
+    .auth-display .role-badge.admin {
+        background:
+            var(--ef-navy);
+
+        color:
+            white;
+    }
+
+
+    .auth-display .link-btn {
+        padding:
+            0.4rem 0.9rem;
+
+        border-radius:
+            var(--ef-radius);
+
+        font-weight:
+            600;
+
+        color:
+            var(--ef-navy);
+
+        text-decoration:
+            none;
+    }
+
+
+    .auth-display .link-btn:hover {
+        text-decoration:
+            none;
+
+        background:
+            var(--ef-bg);
+    }
+
+
     .auth-display .link-btn.primary {
-        background: var(--ef-blue);
-        color: white;
+        background:
+            var(--ef-blue);
+
+        color:
+            white;
     }
-    .auth-display .link-btn.primary:hover { background: var(--ef-blue-2); }
+
+
+    .auth-display .link-btn.primary:hover {
+        background:
+            var(--ef-blue-2);
+    }
+
+
+    @@media (max-width: 640px) {
+
+        .auth-display {
+            gap:
+                0.4rem;
+        }
+
+        .auth-display .user-name {
+            display:
+                none;
+        }
+
+    }
+
 </style>
 
+
 @code {
-    [Inject] private JwtAuthenticationStateProvider AuthState { get; set; } = default!;
-    [Inject] private NavigationManager              Nav       { get; set; } = default!;
 
-    private static bool IsCreator(AuthenticationState ctx) =>
-        ctx.User.IsInRole("Creator") || ctx.User.IsInRole("Admin");
+    [Inject]
+    private JwtAuthenticationStateProvider AuthState
+    {
+        get;
+        set;
+    } = default!;
 
-    private static string GetName(AuthenticationState ctx) =>
-        ctx.User.Identity?.Name ?? "Anonymous";
+
+    [Inject]
+    private NavigationManager Nav
+    {
+        get;
+        set;
+    } = default!;
+
+
+    private static string GetRoleLabel(
+        AuthenticationState context)
+    {
+        if (context.User.IsInRole("Admin"))
+        {
+            return "Admin";
+        }
+
+
+        if (context.User.IsInRole("Creator"))
+        {
+            return "Creator";
+        }
+
+
+        return "Consumer";
+    }
+
+
+    private static string GetRoleCssClass(
+        AuthenticationState context)
+    {
+        if (context.User.IsInRole("Admin"))
+        {
+            return "admin";
+        }
+
+
+        if (context.User.IsInRole("Creator"))
+        {
+            return "creator";
+        }
+
+
+        return "consumer";
+    }
+
+
+    private static string GetName(
+        AuthenticationState context)
+    {
+        return context.User.Identity?.Name
+               ?? "Anonymous";
+    }
+
 
     private async Task LogOut()
     {
         await AuthState.LogOutAsync();
-        Nav.NavigateTo("/");
+
+        Nav.NavigateTo(
+            "/");
     }
+
 }

@@ -1,27 +1,69 @@
 ﻿<nav class="ef-nav">
-    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-        <span class="icon">🏠</span> <span class="label">Home</span>
-    </NavLink>
-    <NavLink class="nav-link" href="search">
-        <span class="icon">🔍</span> <span class="label">Explore</span>
+
+    <NavLink class="nav-link"
+             href=""
+             Match="NavLinkMatch.All">
+
+        <span class="icon">🏠</span>
+        <span class="label">Home</span>
+
     </NavLink>
 
-    <AuthorizeView Roles="Creator,Admin">
+
+    <NavLink class="nav-link"
+             href="search">
+
+        <span class="icon">🔍</span>
+        <span class="label">Explore</span>
+
+    </NavLink>
+
+
+    @* Creator-only functionality.
+       Admin is intentionally excluded because the
+       Creator Dashboard and Upload pages require
+       the Creator role.
+    *@
+    <AuthorizeView Roles="Creator">
+
         <Authorized>
-            <NavLink class="nav-link" href="creator/dashboard">
-                <span class="icon">📊</span> <span class="label">Dashboard</span>
+
+            <NavLink class="nav-link"
+                     href="creator/dashboard">
+
+                <span class="icon">📊</span>
+                <span class="label">Dashboard</span>
+
             </NavLink>
-            <NavLink class="nav-link" href="creator/upload">
-                <span class="icon">⬆️</span> <span class="label">Upload</span>
+
+
+            <NavLink class="nav-link"
+                     href="creator/upload">
+
+                <span class="icon">⬆️</span>
+                <span class="label">Upload</span>
+
             </NavLink>
+
         </Authorized>
+
     </AuthorizeView>
+
 
     <AuthorizeView>
+
         <Authorized>
-            <NavLink class="nav-link" href="me">
-                <span class="icon">👤</span> <span class="label">Profile</span>
+
+            <NavLink class="nav-link"
+                     href="me">
+
+                <span class="icon">👤</span>
+                <span class="label">Profile</span>
+
             </NavLink>
+
         </Authorized>
+
     </AuthorizeView>
+
 </nav>
