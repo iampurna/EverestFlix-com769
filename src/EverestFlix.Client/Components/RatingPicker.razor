@@ -2,109 +2,349 @@
 
 @if (_open)
 {
-    <div class="rating-backdrop" @onclick="Close"></div>
+    <div class="rating-backdrop"
+         @onclick="Close">
+    </div>
+
+
     <div class="rating-picker">
+
         <div class="header">
-            <strong>Rate this video</strong>
-            <button class="ef-ghost" @onclick="Close">✕</button>
+
+            <strong>
+                Rate this video
+            </strong>
+
+            <button type="button"
+                    class="ef-ghost"
+                    @onclick="Close">
+
+                ✕
+
+            </button>
+
         </div>
-        <div class="stars">
-            @for (int i = 1; i <= 5; i++)
+
+
+        @if (_loading)
+        {
+            <p class="summary">
+                Loading rating…
+            </p>
+        }
+        else
+        {
+            <AuthorizeView>
+
+                <Authorized>
+
+                    <div class="stars">
+
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            var value = i;
+
+                            <button type="button"
+                                    class="star @(_current >= value ? "filled" : "")"
+                                    disabled="@_busy"
+                                    @onclick="() => Submit(value)">
+
+                                ★
+
+                            </button>
+                        }
+
+                    </div>
+
+                </Authorized>
+
+
+                <NotAuthorized>
+
+                    <div class="login-message">
+
+                        <a href="/login">
+                            Log in
+                        </a>
+
+                        to rate this video.
+
+                    </div>
+
+                </NotAuthorized>
+
+            </AuthorizeView>
+
+
+            @if (!string.IsNullOrWhiteSpace(_error))
             {
-                var val = i;
-                <button class="star @(_current >= val ? "filled" : "")"
-                        @onclick="() => Submit(val)"
-                        disabled="@_busy">★</button>
+                <div class="ef-error">
+                    @_error
+                </div>
             }
-        </div>
-        <p class="summary">
-            @if (_summary.Count > 0)
-            {
-                <span>@_summary.Average.ToString("0.0") avg · @_summary.Count vote@(_summary.Count == 1 ? "" : "s")</span>
-            }
-            else
-            {
-                <span>No ratings yet.</span>
-            }
-        </p>
+
+
+            <p class="summary">
+
+                @if (_summary.Count > 0)
+                {
+                    <span>
+
+                        @_summary.Average.ToString("0.0")
+                        ★ ·
+                        @_summary.Count
+                        rating@(_summary.Count == 1 ? "" : "s")
+
+                    </span>
+                }
+                else
+                {
+                    <span>
+                        No ratings yet.
+                    </span>
+                }
+
+            </p>
+        }
+
     </div>
 }
 
+
 <style>
+
     .rating-backdrop {
         position: fixed;
+
         inset: 0;
-        background: rgba(15, 23, 42, 0.3);
+
+        background:
+            rgba(15, 23, 42, 0.3);
+
         z-index: 40;
     }
+
+
     .rating-picker {
         position: fixed;
+
         top: 50%;
         left: 50%;
-        transform: translate(-50%, -50%);
-        background: var(--ef-surface);
-        border-radius: var(--ef-radius);
+
+        transform:
+            translate(-50%, -50%);
+
+        background:
+            var(--ef-surface);
+
+        border-radius:
+            var(--ef-radius);
+
         padding: 1.5rem;
-        min-width: 300px;
-        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
+
+        width: min(360px, calc(100vw - 2rem));
+
+        box-shadow:
+            0 20px 60px
+            rgba(15, 23, 42, 0.2);
+
         z-index: 41;
     }
+
+
     .rating-picker .header {
         display: flex;
+
         justify-content: space-between;
         align-items: center;
+
         margin-bottom: 1rem;
     }
-    .rating-picker .stars {
+
+
+    .stars {
         display: flex;
+
         gap: 0.35rem;
+
         justify-content: center;
+
         margin: 1rem 0;
     }
-    .rating-picker .star {
+
+
+    .star {
         background: transparent;
+
         border: none;
+
         font-size: 2.2rem;
-        color: var(--ef-border);
+
+        color:
+            var(--ef-border);
+
         padding: 0.25rem;
-        transition: color 0.15s, transform 0.1s;
     }
-    .rating-picker .star:hover:not(:disabled) { transform: scale(1.15); color: var(--ef-blue); }
-    .rating-picker .star.filled { color: var(--ef-blue); }
-    .rating-picker .summary { text-align: center; color: var(--ef-brown); font-size: 0.85rem; margin: 0; }
+
+
+    .star:hover:not(:disabled) {
+        transform: scale(1.15);
+
+        color:
+            var(--ef-blue);
+    }
+
+
+    .star.filled {
+        color:
+            var(--ef-blue);
+    }
+
+
+    .summary {
+        text-align: center;
+
+        color:
+            var(--ef-brown);
+
+        font-size: 0.85rem;
+
+        margin: 1rem 0 0;
+    }
+
+
+    .login-message {
+        text-align: center;
+
+        padding: 1rem;
+
+        color:
+            var(--ef-brown);
+    }
+
 </style>
 
+
 @code {
-    [Parameter] public int VideoId { get; set; }
 
-    private bool          _open;
-    private bool          _busy;
-    private int           _current;
-    private RatingSummary _summary = new();
+    [Parameter]
+    public int VideoId { get; set; }
 
-    public async Task OpenAsync(int videoId)
+    [Parameter]
+    public EventCallback<RatingSummary>
+        OnSummaryChanged { get; set; }
+
+
+    private bool _open;
+
+    private bool _busy;
+
+    private bool _loading;
+
+    private int _current;
+
+    private string? _error;
+
+    private RatingSummary _summary =
+        new();
+
+
+    public async Task OpenAsync(
+        int videoId)
     {
-        VideoId  = videoId;
-        _open    = true;
-        _summary = await Api.GetRatingAsync(videoId);
-        _current = _summary.MyRating ?? 0;
+        VideoId =
+            videoId;
+
+        _open =
+            true;
+
+        _loading =
+            true;
+
+        _error =
+            null;
+
+        await InvokeAsync(
+            StateHasChanged);
+
+        try
+        {
+            _summary =
+                await Api.GetRatingAsync(
+                    videoId);
+
+            _current =
+                _summary.MyRating ?? 0;
+        }
+        catch
+        {
+            _error =
+                "Rating information could not be loaded.";
+        }
+        finally
+        {
+            _loading =
+                false;
+
+            await InvokeAsync(
+                StateHasChanged);
+        }
     }
+
 
     public void Close()
     {
-        _open = false;
-        StateHasChanged();
+        _open =
+            false;
+
+        _ =
+            InvokeAsync(
+                StateHasChanged);
     }
 
-    private async Task Submit(int value)
+
+    private async Task Submit(
+        int value)
     {
-        _busy = true;
-        var ok = await Api.SetRatingAsync(VideoId, value);
-        if (ok)
+        _busy =
+            true;
+
+        _error =
+            null;
+
+        try
         {
-            _current = value;
-            _summary = await Api.GetRatingAsync(VideoId);
+            var ok =
+                await Api.SetRatingAsync(
+                    VideoId,
+                    value);
+
+            if (!ok)
+            {
+                _error =
+                    "Rating could not be saved.";
+
+                return;
+            }
+
+            _current =
+                value;
+
+            _summary =
+                await Api.GetRatingAsync(
+                    VideoId);
+
+            await OnSummaryChanged.InvokeAsync(
+                _summary);
         }
-        _busy = false;
+        finally
+        {
+            _busy =
+                false;
+
+            await InvokeAsync(
+                StateHasChanged);
+        }
     }
+
 }

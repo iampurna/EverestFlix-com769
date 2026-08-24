@@ -1,66 +1,148 @@
-@* Action rail with real hooks for comments and ratings *@
+@* EverestFlix Reel actions.
+   Coursework-required interactions are comments and ratings.
+   Share is retained as a useful optional feature.
+*@
 
 <div class="action-rail">
-    <button class="action" title="Like (coming soon)" disabled>
-        <span class="action-icon">♡</span>
-        <span class="action-count">—</span>
-    </button>
-    <button class="action" title="Comments" @onclick="OnCommentsClick">
+
+    <button class="action"
+            type="button"
+            title="Comments"
+            @onclick="OnCommentsClick">
+
         <span class="action-icon">💬</span>
-        <span class="action-count">@CommentCount</span>
+
+        <span class="action-count">
+            @CommentCount
+        </span>
+
     </button>
-    <button class="action" title="Rate" @onclick="OnRateClick">
+
+
+    <button class="action"
+            type="button"
+            title="Rate video"
+            @onclick="OnRateClick">
+
         <span class="action-icon">★</span>
-        <span class="action-count">@(RatingAverage > 0 ? RatingAverage.ToString("0.0") : "—")</span>
+
+        <span class="action-count">
+            @(RatingAverage > 0
+                ? RatingAverage.ToString("0.0")
+                : "—")
+        </span>
+
     </button>
-    <button class="action" title="Share" @onclick="OnShareClick">
+
+
+    <button class="action"
+            type="button"
+            title="Copy video link"
+            @onclick="OnShareClick">
+
         <span class="action-icon">↗</span>
+
     </button>
+
 </div>
 
+
 <style>
+
     .action-rail {
         position: absolute;
         bottom: 1rem;
         right: 0;
+
         display: flex;
         flex-direction: column;
+
         gap: 1rem;
+
         z-index: 5;
     }
+
     .action-rail .action {
         background: var(--ef-surface);
         color: var(--ef-navy);
+
         border: 1px solid var(--ef-border);
+
         border-radius: 50%;
-        width: 44px;
-        height: 44px;
+
+        width: 46px;
+        height: 46px;
+
         display: flex;
         flex-direction: column;
+
         align-items: center;
         justify-content: center;
+
         padding: 0;
+
         box-shadow: var(--ef-shadow);
     }
-    .action-rail .action:hover:not(:disabled) {
+
+    .action-rail .action:hover {
         background: var(--ef-blue-3);
         border-color: var(--ef-blue);
     }
-    .action-rail .action-icon { font-size: 1.3rem; line-height: 1; }
-    .action-rail .action-count { font-size: 0.6rem; margin-top: 2px; color: var(--ef-brown); }
+
+    .action-icon {
+        font-size: 1.25rem;
+        line-height: 1;
+    }
+
+    .action-count {
+        font-size: 0.6rem;
+        margin-top: 2px;
+        color: var(--ef-brown);
+    }
+
 
     @@media (max-width: 640px) {
-        .action-rail { right: 0.75rem; bottom: 5rem; }
-        .action-rail .action { background: rgba(0, 0, 0, 0.4); color: white; border: none; }
-        .action-rail .action:hover:not(:disabled) { background: rgba(0, 0, 0, 0.6); }
-        .action-rail .action-count { color: white; }
+
+        .action-rail {
+            right: 0.75rem;
+            bottom: 5rem;
+        }
+
+        .action-rail .action {
+            background: rgba(0, 0, 0, 0.45);
+            color: white;
+
+            border: none;
+        }
+
+        .action-rail .action:hover {
+            background: rgba(0, 0, 0, 0.65);
+        }
+
+        .action-count {
+            color: white;
+        }
+
     }
+
 </style>
 
+
 @code {
-    [Parameter] public int    CommentCount   { get; set; }
-    [Parameter] public double RatingAverage  { get; set; }
-    [Parameter] public EventCallback OnCommentsClick { get; set; }
-    [Parameter] public EventCallback OnRateClick     { get; set; }
-    [Parameter] public EventCallback OnShareClick    { get; set; }
+
+    [Parameter]
+    public int CommentCount { get; set; }
+
+    [Parameter]
+    public double RatingAverage { get; set; }
+
+    [Parameter]
+    public EventCallback OnCommentsClick { get; set; }
+
+    [Parameter]
+    public EventCallback OnRateClick { get; set; }
+
+    [Parameter]
+    public EventCallback OnShareClick { get; set; }
+
 }
